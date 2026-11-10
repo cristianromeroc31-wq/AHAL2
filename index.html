@@ -1,0 +1,1025 @@
+<meta charset="utf-8">
+<title>Radar VT AHAL</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: splash de marca → app con barra lateral (escritorio) / pestañas (móvil); una vista por sección, enrutada por #hash */
+:root{
+  --peach:#EDB295;      /* banda promocional AHAL */
+  --cream:#F4EDE2;      /* barra de navegación AHAL */
+  --bg:#FAF6EF;
+  --surface:#FFFFFF;
+  --ink:#1A1A1A;
+  --muted:#6E5A49;
+  --line:#E7DBCB;
+  --accent:#873F04;     /* óxido / ámbar oscuro de la foto */
+  --amber:#C58027;
+  --caramel:#D19C66;
+  --sand:#E1C5A1;
+  --deep:#4E2505;
+  --accent-soft:#F6E6D6;
+  --on-accent:#FFFFFF;
+  --good:#4F7A3A; --good-bg:#E5EEDC;
+  --warn:#9A6400; --warn-bg:#F7EACB;
+  --bad:#8E3B2E; --bad-bg:#F4DCD6;
+  --neutral-bg:#EFE8DE;
+  --f-display:"Poppins",ui-sans-serif,system-ui,sans-serif;
+  --f-body:"Inter",ui-sans-serif,system-ui,sans-serif;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --cream:#1F1812; --bg:#16110D; --surface:#211A14; --ink:#F4EDE2; --muted:#BFA88E; --line:#3A2E24;
+  --accent:#D19C66; --accent-soft:#3A2A1C; --on-accent:#1A1A1A; --deep:#E1C5A1;
+  --good:#9DC27F; --good-bg:#26331E; --warn:#E3B45A; --warn-bg:#3A2D14; --bad:#E39A8A; --bad-bg:#3D2420; --neutral-bg:#2C241D;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --cream:#1F1812; --bg:#16110D; --surface:#211A14; --ink:#F4EDE2; --muted:#BFA88E; --line:#3A2E24;
+  --accent:#D19C66; --accent-soft:#3A2A1C; --on-accent:#1A1A1A; --deep:#E1C5A1;
+  --good:#9DC27F; --good-bg:#26331E; --warn:#E3B45A; --warn-bg:#3A2D14; --bad:#E39A8A; --bad-bg:#3D2420; --neutral-bg:#2C241D;
+  color-scheme:dark}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5}
+*{box-sizing:border-box}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;font-weight:600}
+a{color:var(--accent)}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.tabnum{font-variant-numeric:tabular-nums}
+
+/* ---------- Splash ---------- */
+#splash{position:fixed;inset:0;z-index:50;background:var(--peach);color:#1A1A1A;display:grid;place-items:center;cursor:pointer;
+  transition:opacity .7s ease, transform .8s cubic-bezier(.7,0,.2,1);padding:24px max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px))}
+#splash.out{opacity:0;transform:translateY(-4%);pointer-events:none}
+#splash .inner{text-align:center;display:grid;gap:18px;justify-items:center;position:relative;z-index:1}
+.wordmark{font-family:var(--f-display);font-weight:500;letter-spacing:.42em;font-size:clamp(56px,13vw,148px);line-height:1;margin-right:-.42em}
+.wordmark-bar{height:clamp(4px,.8vw,8px);width:min(78vw,560px);background:#1A1A1A;transform-origin:left;animation:bar 1.1s .35s cubic-bezier(.6,0,.2,1) both}
+.wordmark span{display:inline-block;animation:rise .8s cubic-bezier(.2,.7,.2,1) both}
+.wordmark span:nth-child(2){animation-delay:.08s}.wordmark span:nth-child(3){animation-delay:.16s}.wordmark span:nth-child(4){animation-delay:.24s}
+.splash-tag{font-family:var(--f-display);font-size:clamp(14px,2vw,18px);letter-spacing:.06em;animation:fade 1s .9s both}
+.splash-meta{font-size:13px;opacity:.75;animation:fade 1s 1.2s both;min-height:20px}
+.splash-hint{position:absolute;bottom:calc(28px + env(safe-area-inset-bottom,0px));left:0;right:0;text-align:center;font-size:12px;letter-spacing:.14em;text-transform:uppercase;opacity:.6;z-index:1}
+#splash svg.leaves{position:absolute;inset:0;width:100%;height:100%;opacity:.55}
+#splash svg.leaves path{fill:none;stroke:#873F04;stroke-width:1.4;stroke-dasharray:900;stroke-dashoffset:900;animation:draw 2.4s .2s ease forwards}
+@keyframes bar{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes rise{from{opacity:0;transform:translateY(30%)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes draw{to{stroke-dashoffset:0}}
+@media (prefers-reduced-motion: reduce){#splash *,#splash{animation:none!important;transition:none!important}#splash svg.leaves path{stroke-dashoffset:0}}
+
+/* ---------- App shell ---------- */
+.promo{background:var(--peach);color:#1A1A1A;overflow:hidden;white-space:nowrap;font-family:var(--f-display);font-weight:600;font-size:12.5px}
+.promo-track{display:inline-flex;gap:56px;padding:7px 0;animation:marquee 40s linear infinite}
+.promo:hover .promo-track{animation-play-state:paused}
+@keyframes marquee{to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion: reduce){.promo-track{animation:none}}
+header.top{background:var(--cream);border-bottom:1px solid var(--line);position:sticky;top:env(safe-area-inset-top,0px);z-index:20}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:21;background:var(--cream)}
+.top-inner{display:flex;align-items:center;gap:20px;padding-block:12px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));flex-wrap:wrap}
+.logo{display:inline-grid;justify-items:center;text-decoration:none;color:var(--ink)}
+.logo b{font-family:var(--f-display);font-weight:500;letter-spacing:.32em;font-size:24px;line-height:1;margin-right:-.32em}
+.logo i{display:block;height:3px;width:100%;background:var(--ink);margin-top:4px}
+.top-title{display:grid;line-height:1.25;min-width:0}
+.top-title strong{font-family:var(--f-display);font-size:17px;font-weight:600}
+.top-title span{color:var(--muted);font-size:12.5px}
+.top-tools{margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.field{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+select,.input{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 10px;color:var(--ink);max-width:100%}
+.layout{display:grid;grid-template-columns:232px minmax(0,1fr);min-height:calc(100% - 100px);background:linear-gradient(to right,var(--cream) 232px,var(--bg) 232px)}
+nav.side{border-right:1px solid var(--line);background:var(--cream);padding:18px 0;position:sticky;top:calc(var(--hdr,64px) + env(safe-area-inset-top,0px));align-self:start;height:calc(100vh - var(--hdr,64px))}
+nav.side a{display:flex;align-items:center;gap:12px;padding:11px 22px;color:var(--ink);text-decoration:none;font-family:var(--f-display);font-size:14px;font-weight:500;border-left:3px solid transparent}
+nav.side a svg{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6}
+nav.side a:hover{background:var(--accent-soft)}
+nav.side a[aria-current="page"]{background:var(--accent);color:var(--on-accent);border-left-color:var(--deep)}
+.side-foot{padding:22px;color:var(--muted);font-size:12px;line-height:1.5}
+main{min-width:0;padding-block:24px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+@media (min-width:900px){main{padding-left:32px;padding-right:max(32px,env(safe-area-inset-right,0px))}}
+.view{display:grid;gap:22px;max-width:1280px;animation:fade .35s ease}
+.view-head{display:grid;gap:4px}
+.eyebrow{font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.view-head h1{font-size:clamp(22px,3vw,30px)}
+.view-head p{margin:0;color:var(--muted);max-width:72ch}
+@media (max-width:899px){
+  .layout{grid-template-columns:1fr;background:var(--bg)}
+  nav.side{position:sticky;top:calc(var(--hdr,104px) + env(safe-area-inset-top,0px));z-index:15;height:auto;display:flex;overflow-x:auto;padding:0;border-right:0;border-bottom:1px solid var(--line)}
+  nav.side a{white-space:nowrap;border-left:0;border-bottom:3px solid transparent;padding:11px 14px}
+  nav.side a[aria-current="page"]{border-bottom-color:var(--deep)}
+  .side-foot{display:none}
+  .top-title span{display:none}
+}
+
+/* ---------- Common blocks ---------- */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;display:grid;gap:2px;min-width:0}
+.kpi .k-label{font-size:12px;color:var(--muted)}
+.kpi .k-val{font-family:var(--f-display);font-size:24px;font-weight:600;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;line-height:1.25}
+.kpi .k-sub{font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;min-width:0}
+.panel h2{font-size:16px;margin-bottom:2px}
+.panel .sub{color:var(--muted);font-size:12.5px;margin:0 0 12px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px}
+.table-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{font-weight:600;text-align:left;color:var(--muted);font-size:12px;border-bottom:1px solid var(--line);padding:8px 10px;white-space:nowrap}
+td{border-bottom:1px solid var(--line);padding:9px 10px;vertical-align:top}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:0}
+.pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.p-good{background:var(--good-bg);color:var(--good)} .p-warn{background:var(--warn-bg);color:var(--warn)}
+.p-bad{background:var(--bad-bg);color:var(--bad)} .p-neutral{background:var(--neutral-bg);color:var(--muted)}
+.p-accent{background:var(--accent-soft);color:var(--accent)}
+.bar-row{display:grid;grid-template-columns:minmax(0,190px) minmax(0,1fr) 54px;gap:10px;align-items:center;font-size:12.5px;padding:3px 0}
+.bar-row .lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-track{height:12px;background:var(--neutral-bg);border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;background:var(--amber);border-radius:3px}
+.bar-row .v{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart text{fill:var(--muted);font-size:11px;font-family:var(--f-body)}
+.note{font-size:12.5px;color:var(--muted)}
+.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 12px;cursor:pointer;font-weight:500}
+.btn:hover{border-color:var(--caramel)}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn-primary:hover{filter:brightness(1.08)}
+#tip{position:fixed;z-index:60;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12px;padding:8px 10px;border-radius:8px;max-width:320px;line-height:1.4;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+.spark path{fill:none;stroke:var(--accent);stroke-width:1.6}
+.spark .area{fill:var(--accent-soft);stroke:none}
+
+/* ---------- Opportunities ---------- */
+.opp-name{font-weight:600;font-family:var(--f-display)}
+tr.is-current td{background:var(--accent-soft)}
+
+/* ---------- Scatter (estilo Orange) ---------- */
+.orange{display:grid;grid-template-columns:260px minmax(0,1fr);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--surface)}
+.o-ctrl{background:var(--cream);border-right:1px solid var(--line);padding:12px;display:grid;gap:12px;align-content:start;font-size:12.5px}
+.o-box{border:1px solid var(--line);border-radius:6px;padding:10px 10px 8px;position:relative;display:grid;gap:8px;background:var(--surface)}
+.o-box > .o-legend{position:absolute;top:-9px;left:8px;background:var(--cream);padding:0 4px;font-size:12px;color:var(--muted)}
+.o-row{display:grid;grid-template-columns:62px minmax(0,1fr);align-items:center;gap:6px}
+.o-row select{padding:4px 6px;font-size:12px;width:100%}
+.o-n{display:inline-grid;place-items:center;width:15px;height:15px;border-radius:3px;background:var(--bad);color:#fff;font-size:10px;font-weight:700;margin-right:4px;vertical-align:-2px}
+.o-sel{position:relative}
+.o-sel .o-n{position:absolute;left:6px;top:50%;transform:translateY(-50%);pointer-events:none}
+.o-sel select{padding-left:26px}
+.o-slider{display:grid;grid-template-columns:96px minmax(0,1fr);align-items:center;gap:6px}
+.o-slider input{width:100%;accent-color:var(--accent)}
+.o-check{display:flex;gap:8px;align-items:center;cursor:pointer}
+.o-check input{accent-color:var(--accent);width:15px;height:15px;margin:0}
+.o-btn{width:100%;padding:6px;border:1px solid var(--caramel);background:var(--surface);border-radius:4px;cursor:pointer;font-size:12.5px}
+.o-btn:hover{background:var(--accent-soft)}
+.o-tools{display:flex;gap:6px}
+.o-tool{width:32px;height:30px;border:1px solid var(--line);background:var(--surface);border-radius:4px;display:grid;place-items:center;cursor:pointer}
+.o-tool[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
+.o-tool svg{width:16px;height:16px;stroke:var(--ink);fill:none;stroke-width:1.7}
+.o-plot{position:relative;min-width:0;display:grid;grid-template-rows:minmax(0,1fr) auto}
+.o-plot canvas{display:block;width:100%;height:clamp(360px,58vh,600px);cursor:crosshair;touch-action:none}
+.o-status{display:flex;gap:16px;align-items:center;border-top:1px solid var(--line);padding:6px 12px;font-size:12px;color:var(--muted);background:var(--cream);flex-wrap:wrap}
+.o-msg{color:var(--accent);font-weight:500}
+@media (max-width:760px){.orange{grid-template-columns:1fr}.o-ctrl{border-right:0;border-bottom:1px solid var(--line);grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}}
+
+/* ---------- Heatmap ---------- */
+.heat{display:grid;gap:2px;font-size:11px;min-width:640px}
+.heat .h-row{display:grid;grid-template-columns:150px repeat(var(--cols),minmax(0,1fr));gap:2px;align-items:center}
+.heat .h-lbl{color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:6px}
+.heat .h-cell{height:22px;border-radius:2px}
+.heat .h-yr{color:var(--muted);text-align:center;font-size:10px}
+
+/* ---------- Cerebro ---------- */
+.brain{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
+@media (max-width:1050px){.brain{grid-template-columns:1fr}}
+.chat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);display:grid;grid-template-rows:minmax(0,1fr) auto;height:min(76vh,780px);min-height:480px;overflow:hidden}
+.chat-log{overflow-y:auto;padding:20px;display:grid;gap:16px;align-content:start}
+.msg-q{justify-self:end;max-width:min(560px,90%);background:var(--accent);color:var(--on-accent);padding:11px 16px;border-radius:14px 14px 4px 14px}
+.msg-a{display:grid;grid-template-columns:36px minmax(0,1fr);gap:10px;max-width:880px}
+.avatar{width:36px;height:36px;border-radius:50%;background:var(--accent-soft);display:grid;place-items:center}
+.avatar svg{width:20px;height:20px;stroke:var(--accent);fill:none;stroke-width:1.5}
+.bubble{background:var(--cream);border:1px solid var(--line);border-radius:4px 14px 14px 14px;padding:14px 16px;display:grid;gap:10px;min-width:0}
+.bubble h3{font-size:14px}
+.bubble p{margin:0}
+.bubble .src{font-size:11.5px;color:var(--muted);border-top:1px dashed var(--line);padding-top:8px}
+.bubble table{background:var(--surface);border-radius:6px}
+.evid{display:grid;gap:8px}
+.evid-item{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 11px;font-size:12.5px}
+.evid-item a{font-weight:600;text-decoration:none}
+.evid-item a:hover{text-decoration:underline}
+.evid-item .meta{color:var(--muted);font-size:11.5px}
+mark{background:var(--sand);color:#1A1A1A;border-radius:2px;padding:0 2px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:thin}
+.chip{flex:none}
+.chip{border:1px solid var(--caramel);background:var(--surface);color:var(--ink);border-radius:999px;padding:5px 12px;font-size:12.5px;cursor:pointer;text-align:left}
+.chip:hover{background:var(--accent-soft)}
+.composer{border-top:1px solid var(--line);padding:12px;display:grid;gap:10px;background:var(--surface)}
+.composer form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px}
+.inbox{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:0 6px 0 12px}
+.inbox input{border:0;background:transparent;flex:1;min-width:0;padding:11px 0;outline:none}
+.inbox:focus-within{border-color:var(--amber)}
+.icon-btn{border:0;background:transparent;cursor:pointer;padding:6px;border-radius:6px;display:grid;place-items:center}
+.icon-btn svg{width:19px;height:19px;stroke:var(--muted);fill:none;stroke-width:1.6}
+.icon-btn:hover{background:var(--accent-soft)}
+.files{display:grid;gap:12px;align-content:start}
+.files .panel{padding:16px}
+.file-list{display:grid;max-height:420px;overflow-y:auto;margin:0 -4px;padding:0 4px}
+.file{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.file:last-child{border-bottom:0}
+.ficon{width:30px;height:34px;border-radius:4px;display:grid;place-items:center;font-size:9px;font-weight:700;color:#1A1A1A}
+.ficon.c{background:var(--sand)} .ficon.p{background:var(--peach)} .ficon.u{background:var(--caramel)}
+.file .fn{font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file .fs{font-size:11.5px;color:var(--muted)}
+.ok{width:20px;height:20px;border-radius:50%;background:var(--good);display:grid;place-items:center}
+.ok svg{width:12px;height:12px;stroke:var(--surface);fill:none;stroke-width:2.6}
+.drop{border:1.5px dashed var(--caramel);border-radius:10px;padding:16px;text-align:center;display:grid;gap:8px;justify-items:center;color:var(--muted);font-size:12.5px;cursor:pointer}
+.drop.over{background:var(--accent-soft);border-color:var(--accent)}
+.drop strong{color:var(--ink);font-weight:600}
+.typing{display:inline-flex;gap:4px}
+.typing i{width:6px;height:6px;border-radius:50%;background:var(--caramel);animation:blink 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes blink{50%{opacity:.25}}
+.search-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.search-row .input{flex:1;min-width:200px}
+.doc-list{display:grid;gap:8px}
+</style>
+
+<div id="splash" role="button" tabindex="0" aria-label="Entrar al radar AHAL">
+  <svg class="leaves" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <path d="M-20 760 C 120 640, 180 520, 160 360 C 150 260, 200 180, 260 120"/>
+    <path d="M160 360 C 90 330, 60 270, 70 210 C 130 230, 160 290, 160 360"/>
+    <path d="M175 470 C 250 450, 300 400, 310 330 C 240 340, 190 390, 175 470"/>
+    <path d="M150 560 C 80 560, 30 520, 10 460 C 80 455, 130 495, 150 560"/>
+    <path d="M1220 40 C 1090 140, 1040 260, 1060 420 C 1070 520, 1030 610, 960 680"/>
+    <path d="M1060 420 C 1130 450, 1170 510, 1165 570 C 1100 555, 1065 500, 1060 420"/>
+    <path d="M1050 300 C 980 310, 930 270, 910 200 C 980 200, 1035 240, 1050 300"/>
+    <path d="M1040 560 C 990 600, 930 600, 880 570 C 930 530, 995 530, 1040 560"/>
+  </svg>
+  <div class="inner">
+    <div class="wordmark" aria-hidden="true"><span>A</span><span>H</span><span>A</span><span>L</span></div>
+    <div class="wordmark-bar" aria-hidden="true"></div>
+    <div class="splash-tag">Radar de vigilancia tecnológica · cosmética herbolaria mexicana</div>
+    <div class="splash-meta" id="splashMeta">Cargando patentes y ciencia…</div>
+  </div>
+  <div class="splash-hint">Toca para entrar</div>
+</div>
+
+<div class="promo" aria-hidden="true"><div class="promo-track" id="promo"></div></div>
+<header class="top" id="hdr">
+  <div class="top-inner">
+    <a class="logo" href="#oportunidades" aria-label="AHAL, inicio"><b>AHAL</b><i></i></a>
+    <div class="top-title"><strong>Radar VT · AHAL Innovación</strong><span>Vigilancia tecnológica para cosmética herbolaria mexicana</span></div>
+    <div class="top-tools">
+      <label class="field" for="ingSel">Ingrediente:
+        <select id="ingSel"><option value="all">Todos los ingredientes</option></select>
+      </label>
+    </div>
+  </div>
+</header>
+<div class="layout">
+  <nav class="side" id="nav" aria-label="Secciones">
+    <a href="#oportunidades" data-v="oportunidades"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Oportunidades</a>
+    <a href="#explorador" data-v="explorador"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 17.5h7M17.5 14v7"/></svg>Explorador de patentes</a>
+    <a href="#ciencia" data-v="ciencia"><svg viewBox="0 0 24 24"><path d="M9 3h6M10 3v6L4.5 18.5A1.7 1.7 0 0 0 6 21h12a1.7 1.7 0 0 0 1.5-2.5L14 9V3"/><path d="M7 15h10"/></svg>Explorador de ciencia</a>
+    <a href="#calidad" data-v="calidad"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>Calidad de investigación</a>
+    <a href="#cerebro" data-v="cerebro"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3c-3 3-3 15 0 18M12 3c3 3 3 15 0 18M3.5 9h17M3.5 15h17"/></svg>El Cerebro</a>
+    <div class="side-foot" id="sideFoot"></div>
+  </nav>
+  <main id="main"></main>
+</div>
+<div id="tip" hidden></div>
+
+<script>
+(() => {
+"use strict";
+/* ================= Utilidades ================= */
+const $ = (s, el = document) => el.querySelector(s);
+const fmt = n => (n == null || isNaN(n)) ? "–" : Number(n).toLocaleString("es-MX");
+const pct = (a, b) => b ? Math.round(100 * a / b) + "%" : "–";
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const norm = s => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const NOW_YEAR = 2026;
+
+const JUR = {US:"EE. UU.",WO:"PCT (OMPI)",EP:"Europa (EPO)",CN:"China",KR:"Corea",JP:"Japón",MX:"México",RU:"Rusia",GB:"Reino Unido",CA:"Canadá",FR:"Francia",DE:"Alemania",ES:"España",AU:"Australia",RO:"Rumania",IT:"Italia",BG:"Bulgaria",HU:"Hungría",PH:"Filipinas",TW:"Taiwán",MY:"Malasia",BR:"Brasil",IN:"India",ZA:"Sudáfrica",AR:"Argentina",CO:"Colombia",CL:"Chile"};
+const LEGAL_ES = {ACTIVE:["Activa","p-good"],PATENTED:["Patentada","p-good"],PENDING:["En trámite","p-warn"],INACTIVE:["Inactiva","p-neutral"],DISCONTINUED:["Abandonada","p-bad"],EXPIRED:["Expirada","p-neutral"],UNKNOWN:["Sin dato","p-neutral"]};
+const TYPE_ES = {"Patent Application":"Solicitud","Granted Patent":"Patente concedida","Search Report":"Informe de búsqueda","Amended Application":"Solicitud enmendada","Limited Patent":"Patente limitada","Amended Patent":"Patente enmendada","Statutory Invention Registration":"Registro de invención","Design Right":"Diseño","Unknown":"Otro"};
+const CPC = {A61K:"Preparaciones cosméticas o médicas",A61Q:"Uso específico de cosméticos",A61P:"Actividad terapéutica",A23L:"Alimentos y bebidas",A23V:"Indexación alimentaria",C12N:"Microorganismos y enzimas",C07C:"Compuestos orgánicos acíclicos",A01N:"Biocidas y conservación",C12P:"Fermentación",C11D:"Detergentes",C08G:"Polímeros",C07K:"Péptidos",A61L:"Esterilización y materiales",A23K:"Alimento animal",C08L:"Composiciones de polímeros",Y02A:"Adaptación climática",A23G:"Cacao, chocolate y confitería",C07D:"Compuestos heterocíclicos",A23P:"Conformado de alimentos",C09B:"Colorantes",A23C:"Lácteos",A23D:"Aceites comestibles",A45D:"Peluquería y cuidado personal",B01D:"Separación y filtración",C08K:"Aditivos de polímeros",A61M:"Dispositivos de administración",C11B:"Aceites y grasas",G01N:"Análisis de materiales",C12Y:"Enzimas",A61F:"Apósitos y prótesis",C09D:"Recubrimientos y tintas",B01J:"Procesos químicos y adsorbentes",C01B:"Carbón y no metales",B65D:"Envases",C09K:"Materiales diversos",A23B:"Conservación de alimentos",A01H:"Nuevas plantas",A23J:"Proteínas alimentarias",Y10T:"Indexación técnica",Y10S:"Indexación técnica",C12R:"Indexación microbiológica"};
+const isGranted = d => d.type === "Granted Patent";
+const isAlive = d => d.legal === "ACTIVE" || d.legal === "PATENTED" || d.legal === "PENDING";
+
+/* ================= Datos ================= */
+const S = { docs: [], files: [], ings: [], byLens: new Map(), view: null, ing: "all", ready: false };
+
+function loadData(raw) {
+  const F = raw.fields;
+  S.ings = raw.ingredients.slice();
+  S.docs = raw.docs.map(r => {
+    const d = {}; F.forEach((f, i) => d[f] = r[i]);
+    d.type = raw.types[d.type]; d.legal = raw.legal[d.legal];
+    return d;
+  });
+  S.docs.forEach((d, i) => S.byLens.set(d.lens, i));
+  S.files = raw.files.map(f => ({...f, uploaded: false}));
+}
+function docsFor(ds, ing) {           // ds: "ciencia" | "patente" | "all"; ing: index | "all"
+  const set = new Set();
+  for (const f of S.files) {
+    if (ds !== "all" && f.ds !== ds) continue;
+    if (ing !== "all" && f.ing !== +ing) continue;
+    for (const i of f.docs) set.add(i);
+  }
+  return [...set].map(i => S.docs[i]);
+}
+function count(arr, key, split) {
+  const m = new Map();
+  for (const d of arr) {
+    const vals = split ? String(key(d) || "").split(split).map(s => s.trim()).filter(Boolean) : [key(d)];
+    for (const v of vals) if (v !== "" && v != null) m.set(v, (m.get(v) || 0) + 1);
+  }
+  return [...m.entries()].sort((a, b) => b[1] - a[1]);
+}
+const byYear = arr => { const m = {}; for (const d of arr) if (d.year) m[d.year] = (m[d.year] || 0) + 1; return m; };
+const firstApp = d => (d.app || "").split(" ; ")[0];
+
+/* ================= Gráficas pequeñas (SVG) ================= */
+function lineChart(series, o = {}) {
+  const W = o.w || 640, H = o.h || 220, P = {l: 40, r: 14, t: 12, b: 26};
+  const y0 = o.y0 || 2000, y1 = o.y1 || NOW_YEAR;
+  const years = []; for (let y = y0; y <= y1; y++) years.push(y);
+  const maxV = Math.max(1, ...series.flatMap(s => years.map(y => s.data[y] || 0)));
+  const nice = niceMax(maxV);
+  const x = y => P.l + (y - y0) / Math.max(1, (y1 - y0)) * (W - P.l - P.r);
+  const yv = v => H - P.b - v / nice * (H - P.t - P.b);
+  let g = "";
+  for (let i = 0; i <= 4; i++) { const v = nice * i / 4, yy = yv(v); g += `<line x1="${P.l}" x2="${W - P.r}" y1="${yy}" y2="${yy}" stroke="var(--line)" stroke-width="1"/><text x="${P.l - 6}" y="${yy + 4}" text-anchor="end">${fmt(Math.round(v))}</text>`; }
+  const step = Math.ceil((y1 - y0) / 8);
+  for (let y = y0; y <= y1; y += step) g += `<text x="${x(y)}" y="${H - 8}" text-anchor="middle">${y}</text>`;
+  series.forEach((s, si) => {
+    const full = years.filter(y => y < NOW_YEAR), pts = full.map(y => [x(y), yv(s.data[y] || 0)]);
+    if (s.area) g += `<path d="M${pts[0][0]},${yv(0)} L${pts.map(p => p.join(",")).join(" L")} L${pts[pts.length - 1][0]},${yv(0)} Z" fill="${s.color}" opacity=".18"/>`;
+    g += `<path d="M${pts.map(p => p.join(",")).join(" L")}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round"/>`;
+    if (y1 >= NOW_YEAR) { const a = [x(NOW_YEAR - 1), yv(s.data[NOW_YEAR - 1] || 0)], b = [x(NOW_YEAR), yv(s.data[NOW_YEAR] || 0)]; g += `<path d="M${a} L${b}" stroke="${s.color}" stroke-width="2" stroke-dasharray="3 3" fill="none"/>`; }
+    const last = pts[pts.length - 1]; g += `<circle cx="${last[0]}" cy="${last[1]}" r="3.5" fill="${s.color}"/>`;
+    full.forEach(y => { g += `<circle cx="${x(y)}" cy="${yv(s.data[y] || 0)}" r="7" fill="transparent" data-tip="${esc(s.name)} · ${y}: ${fmt(s.data[y] || 0)} docs"/>`; });
+  });
+  let leg = "";
+  if (series.length > 1) leg = `<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px;margin-top:6px">${series.map(s => `<span style="display:inline-flex;gap:6px;align-items:center"><i style="width:12px;height:3px;background:${s.color};display:inline-block"></i>${esc(s.name)}</span>`).join("")}</div>`;
+  return `<div class="chart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.label || "Documentos por año")}">${g}</svg>${leg}<div class="note" style="margin-top:4px">Línea punteada: ${NOW_YEAR} todavía en curso.</div></div>`;
+}
+function niceMax(v) { const p = Math.pow(10, Math.floor(Math.log10(v))); for (const m of [1, 2, 2.5, 5, 10]) if (m * p >= v) return m * p; return 10 * p; }
+function bars(items, o = {}) {
+  const max = Math.max(1, ...items.map(i => i[1]));
+  return `<div>${items.map(([l, v, sub]) => `<div class="bar-row" data-tip="${esc(l)}${sub ? " · " + esc(sub) : ""}: ${fmt(v)}"><span class="lbl">${esc(l)}</span><span class="bar-track"><span class="bar-fill" style="display:block;width:${(v / max * 100).toFixed(1)}%;background:${o.color || "var(--amber)"}"></span></span><span class="v">${fmt(v)}</span></div>`).join("")}</div>`;
+}
+function spark(data, y0 = 2006, y1 = NOW_YEAR - 1) {
+  const W = 120, H = 30, vals = []; for (let y = y0; y <= y1; y++) vals.push(data[y] || 0);
+  const m = Math.max(1, ...vals), pts = vals.map((v, i) => [(i / (vals.length - 1) * W).toFixed(1), (H - 2 - v / m * (H - 4)).toFixed(1)]);
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" aria-hidden="true"><path class="area" d="M0,${H} L${pts.map(p => p.join(",")).join(" L")} L${W},${H} Z"/><path d="M${pts.map(p => p.join(",")).join(" L")}"/></svg>`;
+}
+function legalPill(l) { const [t, c] = LEGAL_ES[l] || [l, "p-neutral"]; return `<span class="pill ${c}">${t}</span>`; }
+function docRow(d) {
+  return `<tr><td class="num">${d.year || "–"}</td><td>${esc(d.jur)}</td><td style="min-width:260px"><a href="https://lens.org/${esc(d.lens)}" target="_blank" rel="noopener">${esc(d.title || "(sin título)")}</a></td><td style="min-width:160px">${esc(firstApp(d)) || "–"}</td><td class="num">${fmt(d.fam)}</td><td class="num">${fmt(d.citedBy)}</td><td>${legalPill(d.legal)}</td></tr>`;
+}
+const docTableHead = `<thead><tr><th class="num">Año</th><th>Oficina</th><th>Título</th><th>Solicitante</th><th class="num">Familia</th><th class="num">Citada por</th><th>Estado</th></tr></thead>`;
+const ingName = i => i === "all" ? "todos los ingredientes" : S.ings[+i];
+
+/* ================= Navegación ================= */
+const VIEWS = { oportunidades: renderOpp, explorador: renderPatents, ciencia: renderScience, calidad: renderQuality, cerebro: renderBrain };
+function route() {
+  if (!S.ready) return;
+  let v = location.hash.slice(1);
+  if (!VIEWS[v]) v = "oportunidades";
+  S.view = v;
+  document.querySelectorAll("#nav a[data-v]").forEach(a => { if (a.dataset.v === v) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
+  const main = $("#main"); main.innerHTML = ""; cleanupScatter();
+  VIEWS[v](main);
+  window.scrollTo({top: 0});
+}
+window.addEventListener("hashchange", route);
+$("#ingSel").addEventListener("change", e => { S.ing = e.target.value; SC.sel.clear(); SC.view = null; SC.msg = ""; route(); });
+function fillIngSelect() {
+  const sel = $("#ingSel"), cur = sel.value;
+  sel.innerHTML = `<option value="all">Todos los ingredientes</option>` + S.ings.map((n, i) => `<option value="${i}">${esc(n)}</option>`).join("");
+  sel.value = [...sel.options].some(o => o.value === cur) ? cur : "all";
+}
+function updateChrome() {
+  const nP = docsFor("patente", "all").length, nC = docsFor("ciencia", "all").length;
+  const items = [`${fmt(S.docs.length)} documentos únicos analizados`, `${S.ings.length} ingredientes de la herbolaria`, `${fmt(nP)} registros en PATENTES`, `${fmt(nC)} registros en CIENCIA`, `${S.files.length} archivos CSV conectados al Cerebro`, `Fuente: exportaciones de The Lens`];
+  $("#promo").innerHTML = [...items, ...items].map(t => `<span>${esc(t)}</span>`).join("");
+  $("#sideFoot").innerHTML = `${S.files.length} archivos · ${fmt(S.docs.length)} documentos<br>Datos: The Lens (lens.org)`;
+  document.documentElement.style.setProperty("--hdr", $("#hdr").offsetHeight + "px");
+}
+
+/* ================= Tooltip global ================= */
+const tip = $("#tip");
+document.addEventListener("mousemove", e => {
+  const t = e.target.closest && e.target.closest("[data-tip]");
+  if (!t) { if (!tip.dataset.lock) tip.hidden = true; return; }
+  showTip(t.getAttribute("data-tip"), e.clientX, e.clientY);
+});
+function showTip(html, x, y, isHtml) {
+  tip[isHtml ? "innerHTML" : "textContent"] = html; tip.hidden = false;
+  const r = tip.getBoundingClientRect();
+  tip.style.left = Math.min(window.innerWidth - r.width - 8, x + 14) + "px";
+  tip.style.top = Math.max(8, (y + 16 + r.height > window.innerHeight ? y - r.height - 12 : y + 16)) + "px";
+}
+
+/* ================= Oportunidades ================= */
+function oppRows() {
+  return S.ings.map((name, i) => {
+    let ds = docsFor("patente", i); const fromPat = ds.length > 0;
+    if (!fromPat) ds = docsFor("ciencia", i);
+    const by = byYear(ds);
+    let recent = 0, prior = 0; for (let y = 2021; y <= 2025; y++) recent += by[y] || 0; for (let y = 2016; y <= 2020; y++) prior += by[y] || 0;
+    const growth = (recent + 1) / (prior + 1);
+    const alive = ds.filter(isAlive).length, mx = ds.filter(d => d.mx).length;
+    const topJur = count(ds, d => d.jur)[0];
+    const capped = S.files.some(f => f.ing === i && f.rows >= 1000);
+    return {i, name, n: ds.length, recent, prior, growth, alive, mx, by, fromPat, topJur: topJur ? topJur[0] : "–", capped};
+  });
+}
+function classify(rows) {
+  const med = [...rows.map(r => r.recent)].sort((a, b) => a - b)[Math.floor(rows.length / 2)];
+  rows.forEach(r => {
+    if (r.recent < med && r.growth >= 1.2) r.cls = ["Espacio blanco", "p-good"];
+    else if (r.recent >= med && r.growth >= 1.2) r.cls = ["En auge", "p-warn"];
+    else if (r.recent >= med) r.cls = ["Maduro / saturado", "p-bad"];
+    else r.cls = ["Nicho estable", "p-neutral"];
+    r.score = Math.round(Math.min(100, (Math.min(r.growth, 3) / 3) * 55 + (1 - Math.min(r.recent, 600) / 600) * 30 + Math.min(r.mx, 40) / 40 * 15));
+  });
+  return rows;
+}
+function renderOpp(main) {
+  const rows = classify(oppRows()).sort((a, b) => b.score - a.score);
+  const all = S.docs, by = byYear(all);
+  const peak = Object.entries(by).filter(([y]) => +y < NOW_YEAR).sort((a, b) => b[1] - a[1])[0];
+  const best = rows[0];
+  main.innerHTML = `<section class="view">
+    <div class="view-head"><span class="eyebrow">Inicio</span><h1>Oportunidades por ingrediente</h1>
+    <p>Comparamos la actividad de patentes de 2021–2025 contra 2016–2020 para cada ingrediente de la herbolaria AHAL. Un ingrediente con poca actividad pero en crecimiento es un espacio blanco: hay interés y todavía poca competencia.</p></div>
+    <div class="kpis">
+      <div class="kpi"><span class="k-label">Documentos únicos</span><span class="k-val">${fmt(all.length)}</span><span class="k-sub">${S.files.length} archivos CSV</span></div>
+      <div class="kpi"><span class="k-label">Mayor puntaje de oportunidad</span><span class="k-val">${esc(best.name)}</span><span class="k-sub">${best.score}/100 · ${best.cls[0]}</span></div>
+      <div class="kpi"><span class="k-label">Con familia en México</span><span class="k-val">${fmt(all.filter(d => d.mx).length)}</span><span class="k-sub">${pct(all.filter(d => d.mx).length, all.length)} del total</span></div>
+      <div class="kpi"><span class="k-label">Año con más publicaciones</span><span class="k-val">${peak ? peak[0] : "–"}</span><span class="k-sub">${peak ? fmt(peak[1]) + " documentos" : ""}</span></div>
+    </div>
+    <div class="panel"><h2>Matriz de oportunidad</h2><p class="sub">Puntaje 0–100 = crecimiento (55%) + baja saturación (30%) + presencia en México (15%). Ordenado de mayor a menor.</p>
+    <div class="table-wrap"><table><thead><tr><th>Ingrediente</th><th>Clasificación</th><th class="num">Puntaje</th><th class="num">Docs.</th><th class="num">2016–20</th><th class="num">2021–25</th><th class="num">Crecimiento</th><th class="num">Vigentes</th><th class="num">En MX</th><th>Oficina líder</th><th>2006–2025</th></tr></thead><tbody>
+    ${rows.map(r => `<tr class="${S.ing !== "all" && +S.ing === r.i ? "is-current" : ""}"><td class="opp-name">${esc(r.name)}${r.fromPat ? "" : ` <span class="pill p-neutral" title="Sin archivo de patentes; se usa CIENCIA">solo ciencia</span>`}</td><td><span class="pill ${r.cls[1]}">${r.cls[0]}</span></td><td class="num"><strong>${r.score}</strong></td><td class="num">${fmt(r.n)}${r.capped ? `<span title="La exportación llegó al tope de 1,000 registros" style="color:var(--warn)"> ▲</span>` : ""}</td><td class="num">${fmt(r.prior)}</td><td class="num">${fmt(r.recent)}</td><td class="num">×${r.growth.toFixed(1)}</td><td class="num">${pct(r.alive, r.n)}</td><td class="num">${fmt(r.mx)}</td><td>${esc(JUR[r.topJur] || r.topJur)}</td><td>${spark(r.by)}</td></tr>`).join("")}
+    </tbody></table></div><p class="note" style="margin-top:10px">▲ La búsqueda llegó al tope de 1,000 registros de The Lens; el conteo real puede ser mayor. Revisa “Calidad de investigación”.</p></div>
+    <div class="grid2">
+      <div class="panel"><h2>Publicaciones por año, todos los ingredientes</h2><p class="sub">Documentos únicos de PATENTES y CIENCIA</p>${lineChart([{name: "Todos", color: css("--accent"), data: by, area: true}], {y0: 1995})}</div>
+      <div class="panel"><h2>Crecimiento 2021–25 vs 2016–20</h2><p class="sub">Veces que creció la actividad</p>${bars(rows.slice().sort((a, b) => b.growth - a.growth).map(r => [r.name, +r.growth.toFixed(1)]), {color: "var(--caramel)"}).replace(/>(\d+(\.\d)?)<\/span><\/div>/g, ">×$1</span></div>")}</div>
+    </div></section>`;
+}
+
+/* ================= Explorador de patentes (gráfica tipo Orange) ================= */
+const SVARS = [
+  {k: "year", l: "Año_publicación", count: false}, {k: "prio", l: "Año_prioridad", count: false},
+  {k: "fam", l: "Familia_simple", count: true}, {k: "extFam", l: "Familia_extendida", count: true},
+  {k: "famJur", l: "Países_en_familia", count: true}, {k: "citedBy", l: "Citada_por", count: true},
+  {k: "cites", l: "Citas_a_patentes", count: true}, {k: "npl", l: "Citas_literatura_NPL", count: true}];
+const RAMP = ["#4E2505", "#873F04", "#C58027", "#D19C66", "#EDB295"];
+const SC = {x: "fam", y: "famJur", c: "year", s: "none", size: 6, op: 70, jit: 8, regions: true, legend: true, grid: false, reg: true, ellipse: false, log: true, tool: "select", view: null, sel: new Set(), msg: ""};
+let scatterCleanup = null;
+function cleanupScatter() { if (scatterCleanup) { scatterCleanup(); scatterCleanup = null; } tip.hidden = true; }
+function rampColor(t) {
+  t = Math.max(0, Math.min(1, t)); const p = t * (RAMP.length - 1), i = Math.min(RAMP.length - 2, Math.floor(p)), f = p - i;
+  const a = hex(RAMP[i]), b = hex(RAMP[i + 1]); return [0, 1, 2].map(k => Math.round(a[k] + (b[k] - a[k]) * f));
+}
+const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+function renderPatents(main) {
+  const opt = (sel) => SVARS.map(v => `<option value="${v.k}" ${v.k === sel ? "selected" : ""}>${v.l}</option>`).join("");
+  main.innerHTML = `<section class="view">
+    <div class="view-head"><span class="eyebrow">Patentes</span><h1>Explorador de patentes</h1>
+    <p>Cada punto es una patente de los archivos PATENTES para <strong>${esc(ingName(S.ing))}</strong>. Elige los ejes, el color y el tamaño; arrastra sobre la gráfica para seleccionar patentes y verlas en la tabla.</p></div>
+    <div class="kpis" id="pKpis"></div>
+    <div class="orange">
+      <div class="o-ctrl">
+        <div class="o-box"><span class="o-legend">Ejes</span>
+          <div class="o-row"><label for="sx">Eje x:</label><span class="o-sel"><span class="o-n">N</span><select id="sx">${opt(SC.x)}</select></span></div>
+          <div class="o-row"><label for="sy">Eje y:</label><span class="o-sel"><span class="o-n">N</span><select id="sy">${opt(SC.y)}</select></span></div>
+          <button class="o-btn" id="sFind" type="button">Buscar proyecciones informativas</button>
+        </div>
+        <div class="o-box"><span class="o-legend">Atributos</span>
+          <div class="o-row"><label for="sc">Color:</label><span class="o-sel"><span class="o-n">N</span><select id="sc">${opt(SC.c)}</select></span></div>
+          <div class="o-row"><label for="ss">Tamaño:</label><select id="ss"><option value="none">(Mismo tamaño)</option>${opt(SC.s)}</select></div>
+        </div>
+        <div class="o-box"><span class="o-legend">Apariencia</span>
+          <div class="o-slider"><label for="sSize">Tamaño símbolo:</label><input id="sSize" type="range" min="2" max="14" value="${SC.size}"></div>
+          <div class="o-slider"><label for="sOp">Opacidad:</label><input id="sOp" type="range" min="10" max="100" value="${SC.op}"></div>
+          <div class="o-slider"><label for="sJit">Dispersión:</label><input id="sJit" type="range" min="0" max="30" value="${SC.jit}"></div>
+          <label class="o-check"><input type="checkbox" id="cLog" ${SC.log ? "checked" : ""}>Escala logarítmica en conteos</label>
+          <label class="o-check"><input type="checkbox" id="cReg" ${SC.regions ? "checked" : ""}>Mostrar regiones de color</label>
+          <label class="o-check"><input type="checkbox" id="cLeg" ${SC.legend ? "checked" : ""}>Mostrar leyenda</label>
+          <label class="o-check"><input type="checkbox" id="cGrid" ${SC.grid ? "checked" : ""}>Mostrar cuadrícula</label>
+          <label class="o-check"><input type="checkbox" id="cLine" ${SC.reg ? "checked" : ""}>Mostrar línea de regresión</label>
+          <label class="o-check"><input type="checkbox" id="cEll" ${SC.ellipse ? "checked" : ""}>Mostrar elipse de confianza</label>
+        </div>
+        <div class="o-box"><span class="o-legend">Zoom / Selección</span>
+          <div class="o-tools">
+            <button class="o-tool" type="button" data-tool="select" title="Seleccionar" aria-pressed="${SC.tool === "select"}"><svg viewBox="0 0 24 24"><path d="M5 3l12 9-5 1 3 6-2 1-3-6-4 4z"/></svg></button>
+            <button class="o-tool" type="button" data-tool="zoom" title="Acercar con un recuadro" aria-pressed="${SC.tool === "zoom"}"><svg viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="M15 15l5 5M10 7v6M7 10h6"/></svg></button>
+            <button class="o-tool" type="button" id="sReset" title="Ajustar a todos los puntos"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+          </div>
+        </div>
+      </div>
+      <div class="o-plot"><canvas id="scv" aria-label="Gráfica de dispersión de patentes"></canvas>
+        <div class="o-status"><span id="sCount" class="tabnum"></span><span id="sR" class="tabnum"></span><span class="o-msg" id="sMsg"></span></div></div>
+    </div>
+    <div class="panel"><h2 id="tTitle">Patentes</h2><p class="sub" id="tSub"></p><div class="table-wrap"><table>${docTableHead}<tbody id="tBody"></tbody></table></div></div>
+  </section>`;
+  const docs = docsFor("patente", S.ing);
+  const by = byYear(docs), apps = count(docs, firstApp), jur = count(docs, d => d.jur);
+  $("#pKpis").innerHTML = `
+    <div class="kpi"><span class="k-label">Patentes</span><span class="k-val">${fmt(docs.length)}</span><span class="k-sub">${esc(ingName(S.ing))}</span></div>
+    <div class="kpi"><span class="k-label">Concedidas</span><span class="k-val">${pct(docs.filter(isGranted).length, docs.length)}</span><span class="k-sub">${fmt(docs.filter(isGranted).length)} patentes concedidas</span></div>
+    <div class="kpi"><span class="k-label">Solicitante líder</span><span class="k-val" style="font-size:16px">${esc(apps[0] ? apps[0][0] : "–")}</span><span class="k-sub">${apps[0] ? fmt(apps[0][1]) + " documentos" : ""}</span></div>
+    <div class="kpi"><span class="k-label">Oficina líder</span><span class="k-val">${esc(jur[0] ? (JUR[jur[0][0]] || jur[0][0]) : "–")}</span><span class="k-sub">${jur[0] ? pct(jur[0][1], docs.length) + " de las patentes" : ""}</span></div>`;
+  if (!docs.length) { $("#sMsg").textContent = "No hay patentes para este ingrediente. Prueba con otro o carga un CSV en El Cerebro."; }
+  initScatter(docs);
+}
+function initScatter(docs) {
+  const cv = $("#scv"), ctx = cv.getContext("2d");
+  const rnd = docs.map((_, i) => { const s = Math.sin(i * 12.9898) * 43758.5453; const t = Math.sin(i * 78.233) * 12543.123; return [s - Math.floor(s) - .5, t - Math.floor(t) - .5]; });
+  let pts = [], dom = null, M = {l: 58, r: 18, t: 18, b: 46}, W = 0, H = 0, drag = null, hover = -1, raf = 0;
+  const tf = k => { const v = SVARS.find(s => s.k === k); return x => (SC.log && v && v.count) ? Math.log10(1 + x) : x; };
+  const label = k => (SVARS.find(s => s.k === k) || {l: k}).l + (SC.log && (SVARS.find(s => s.k === k) || {}).count ? " (log₁₀ 1+x)" : "");
+  function build() {
+    const fx = tf(SC.x), fy = tf(SC.y);
+    pts = []; docs.forEach((d, i) => {
+      if (!d[SC.x] && SC.x.match(/year|prio/)) return; if (!d[SC.y] && SC.y.match(/year|prio/)) return;
+      if (SC.c.match(/year|prio/) && !d[SC.c]) return;
+      pts.push({d, x: fx(d[SC.x]), y: fy(d[SC.y]), c: d[SC.c], s: SC.s === "none" ? 0 : d[SC.s], j: rnd[i]});
+    });
+    const ext = (a) => { let lo = Infinity, hi = -Infinity; for (const v of a) { if (v < lo) lo = v; if (v > hi) hi = v; } if (lo === hi) { lo -= 1; hi += 1; } const p = (hi - lo) * .05; return [lo - p, hi + p]; };
+    dom = SC.view || {x: ext(pts.map(p => p.x)), y: ext(pts.map(p => p.y))};
+    const cs = pts.map(p => p.c).sort((a, b) => a - b); const q = f => cs[Math.min(cs.length - 1, Math.max(0, Math.round(f * (cs.length - 1))))];
+    SC.cMin = q(.03); SC.cMax = q(.97); if (SC.cMax === SC.cMin) { SC.cMin = cs[0]; SC.cMax = cs[cs.length - 1]; }
+    const ss = pts.map(p => p.s); SC.sMax = Math.max(1, ...ss);
+    stats();
+  }
+  function stats() {
+    const n = pts.length; let mx = 0, my = 0; pts.forEach(p => { mx += p.x; my += p.y; }); mx /= n; my /= n;
+    let sxx = 0, syy = 0, sxy = 0; pts.forEach(p => { sxx += (p.x - mx) ** 2; syy += (p.y - my) ** 2; sxy += (p.x - mx) * (p.y - my); });
+    SC.st = {mx, my, sxx, syy, sxy, n, b: sxx ? sxy / sxx : 0, r: (sxx && syy) ? sxy / Math.sqrt(sxx * syy) : 0};
+  }
+  const X = v => M.l + (v - dom.x[0]) / (dom.x[1] - dom.x[0]) * (W - M.l - M.r);
+  const Y = v => H - M.b - (v - dom.y[0]) / (dom.y[1] - dom.y[0]) * (H - M.t - M.b);
+  const iX = px => dom.x[0] + (px - M.l) / (W - M.l - M.r) * (dom.x[1] - dom.x[0]);
+  const iY = py => dom.y[0] + (H - M.b - py) / (H - M.t - M.b) * (dom.y[1] - dom.y[0]);
+  const ct = v => (v - SC.cMin) / ((SC.cMax - SC.cMin) || 1);
+  const jitPx = () => SC.jit / 100 * 40;
+  const px = p => [X(p.x) + p.j[0] * jitPx(), Y(p.y) + p.j[1] * jitPx()];
+  const rad = p => SC.s === "none" ? SC.size : SC.size * (0.5 + 1.5 * Math.sqrt(p.s / SC.sMax));
+  function ticks(lo, hi, n = 6) { const step = niceStep((hi - lo) / n); const out = []; for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(6)); return out; }
+  function niceStep(s) { const p = Math.pow(10, Math.floor(Math.log10(s))); for (const m of [1, 2, 2.5, 5, 10]) if (m * p >= s) return m * p; return 10 * p; }
+  function size() { const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1; W = r.width; H = r.height; cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); M.l = W < 480 ? 44 : 58; }
+  function draw() {
+    const ink = css("--ink"), muted = css("--muted"), line = css("--line"), surf = css("--surface");
+    ctx.clearRect(0, 0, W, H); ctx.fillStyle = surf; ctx.fillRect(0, 0, W, H);
+    if (!pts.length) return;
+    const pw = W - M.l - M.r, ph = H - M.t - M.b;
+    // regiones de color: promedio gaussiano del valor de color sobre una rejilla
+    if (SC.regions) {
+      const gw = 90, gh = Math.max(20, Math.round(90 * ph / pw)), sw = new Float32Array(gw * gh), sv = new Float32Array(gw * gh);
+      for (const p of pts) { const [a, b] = px(p); const gx = Math.floor((a - M.l) / pw * gw), gy = Math.floor((b - M.t) / ph * gh); if (gx < 0 || gy < 0 || gx >= gw || gy >= gh) continue; sw[gy * gw + gx] += 1; sv[gy * gw + gx] += ct(p.c); }
+      const blur = (src) => { const k = [], sig = 7; for (let i = -18; i <= 18; i++) k.push(Math.exp(-i * i / (2 * sig * sig)));
+        const tmp = new Float32Array(src.length), out = new Float32Array(src.length);
+        for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) { let s = 0; for (let i = -18; i <= 18; i++) { const xx = x + i; if (xx >= 0 && xx < gw) s += src[y * gw + xx] * k[i + 18]; } tmp[y * gw + x] = s; }
+        for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) { let s = 0; for (let i = -18; i <= 18; i++) { const yy = y + i; if (yy >= 0 && yy < gh) s += tmp[yy * gw + x] * k[i + 18]; } out[y * gw + x] = s; } return out; };
+      const bw = blur(sw), bv = blur(sv); let mw = 0; for (const v of bw) if (v > mw) mw = v;
+      const off = document.createElement("canvas"); off.width = gw; off.height = gh; const oc = off.getContext("2d"), img = oc.createImageData(gw, gh);
+      for (let i = 0; i < gw * gh; i++) { const c = rampColor(bw[i] > 1e-6 ? bv[i] / bw[i] : .5); const a = Math.min(1, Math.pow(bw[i] / (mw * 0.08), .5)); img.data.set([c[0], c[1], c[2], Math.round(a * 105)], i * 4); }
+      oc.putImageData(img, 0, 0); ctx.save(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high"; ctx.drawImage(off, M.l, M.t, pw, ph); ctx.restore();
+    }
+    // ejes y cuadrícula
+    ctx.font = "11px Inter, system-ui, sans-serif"; ctx.fillStyle = muted; ctx.strokeStyle = line; ctx.lineWidth = 1;
+    const isLog = k => SC.log && (SVARS.find(s => s.k === k) || {}).count;
+    const axT = (k, lo, hi, n) => { if (!isLog(k)) return ticks(lo, hi, n); const t = [0, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000].map(v => Math.log10(1 + v)).filter(v => v >= lo && v <= hi); return t.length >= 2 ? t : ticks(lo, hi, n); };
+    const xt = axT(SC.x, dom.x[0], dom.x[1], Math.max(3, Math.floor(pw / 90))), yt = axT(SC.y, dom.y[0], dom.y[1], Math.max(3, Math.floor(ph / 60)));
+    const tl = (v, k) => (SC.log && (SVARS.find(s => s.k === k) || {}).count) ? fmt(Math.round(Math.pow(10, v) - 1)) : (k.match(/year|prio/) ? String(Math.round(v)) : fmt(+v.toFixed(2)));
+    ctx.textAlign = "center"; xt.forEach(v => { const x = X(v); if (SC.grid) { ctx.beginPath(); ctx.moveTo(x, M.t); ctx.lineTo(x, H - M.b); ctx.stroke(); } ctx.fillText(tl(v, SC.x), x, H - M.b + 16); ctx.beginPath(); ctx.moveTo(x, H - M.b); ctx.lineTo(x, H - M.b + 4); ctx.strokeStyle = ink; ctx.stroke(); ctx.strokeStyle = line; });
+    ctx.textAlign = "right"; yt.forEach(v => { const y = Y(v); if (SC.grid) { ctx.beginPath(); ctx.moveTo(M.l, y); ctx.lineTo(W - M.r, y); ctx.stroke(); } ctx.fillText(tl(v, SC.y), M.l - 8, y + 4); ctx.beginPath(); ctx.moveTo(M.l - 4, y); ctx.lineTo(M.l, y); ctx.strokeStyle = ink; ctx.stroke(); ctx.strokeStyle = line; });
+    ctx.strokeStyle = ink; ctx.beginPath(); ctx.moveTo(M.l, M.t); ctx.lineTo(M.l, H - M.b); ctx.lineTo(W - M.r, H - M.b); ctx.stroke();
+    ctx.fillStyle = ink; ctx.textAlign = "center"; ctx.fillText(label(SC.x), M.l + pw / 2, H - 10);
+    ctx.save(); ctx.translate(13, M.t + ph / 2); ctx.rotate(-Math.PI / 2); ctx.fillText(label(SC.y), 0, 0); ctx.restore();
+    // puntos
+    ctx.save(); ctx.beginPath(); ctx.rect(M.l, M.t, pw, ph); ctx.clip();
+    const op = SC.op / 100, hasSel = SC.sel.size > 0;
+    const order = pts.slice().sort((a, b) => a.c - b.c);
+    for (const p of order) {
+      const [a, b] = px(p), c = rampColor(ct(p.c)), sel = SC.sel.has(p.d.lens), r = rad(p);
+      const al = hasSel && !sel ? op * .25 : op;
+      ctx.beginPath(); ctx.arc(a, b, r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},${al * .85})`; ctx.fill();
+      ctx.strokeStyle = sel ? ink : `rgba(${Math.round(c[0] * .6)},${Math.round(c[1] * .6)},${Math.round(c[2] * .6)},${Math.min(1, al + .15)})`; ctx.lineWidth = sel ? 1.6 : 1; ctx.stroke();
+    }
+    // regresión
+    if (SC.reg && SC.st.n > 2) {
+      const {mx, my, b} = SC.st; ctx.strokeStyle = ink; ctx.globalAlpha = .75; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.moveTo(X(dom.x[0]), Y(my + b * (dom.x[0] - mx))); ctx.lineTo(X(dom.x[1]), Y(my + b * (dom.x[1] - mx))); ctx.stroke(); ctx.globalAlpha = 1;
+    }
+    if (SC.ellipse && SC.st.n > 2) {
+      const {mx, my, sxx, syy, sxy, n} = SC.st, a = sxx / n, d = syy / n, bb = sxy / n;
+      const tr = a + d, det = a * d - bb * bb, l1 = tr / 2 + Math.sqrt(tr * tr / 4 - det), l2 = tr / 2 - Math.sqrt(Math.max(0, tr * tr / 4 - det));
+      const ang = Math.atan2(l1 - a, bb || 1e-9); ctx.strokeStyle = css("--accent"); ctx.setLineDash([5, 4]); ctx.lineWidth = 1.5; ctx.beginPath();
+      for (let t = 0; t <= 64; t++) { const th = t / 64 * Math.PI * 2, ex = 2 * Math.sqrt(l1) * Math.cos(th), ey = 2 * Math.sqrt(Math.max(0, l2)) * Math.sin(th);
+        const xx = mx + ex * Math.cos(ang) - ey * Math.sin(ang), yy = my + ex * Math.sin(ang) + ey * Math.cos(ang); t ? ctx.lineTo(X(xx), Y(yy)) : ctx.moveTo(X(xx), Y(yy)); }
+      ctx.stroke(); ctx.setLineDash([]);
+    }
+    if (hover >= 0 && pts[hover]) { const [a, b] = px(pts[hover]); ctx.beginPath(); ctx.arc(a, b, rad(pts[hover]) + 3, 0, Math.PI * 2); ctx.strokeStyle = ink; ctx.lineWidth = 2; ctx.stroke(); }
+    ctx.restore();
+    if (drag && drag.moved) { ctx.fillStyle = "rgba(197,128,39,.12)"; ctx.strokeStyle = css("--amber"); ctx.lineWidth = 1; const x0 = Math.min(drag.x0, drag.x1), y0 = Math.min(drag.y0, drag.y1); ctx.fillRect(x0, y0, Math.abs(drag.x1 - drag.x0), Math.abs(drag.y1 - drag.y0)); ctx.strokeRect(x0, y0, Math.abs(drag.x1 - drag.x0), Math.abs(drag.y1 - drag.y0)); }
+    // leyenda por intervalos (como Orange)
+    if (SC.legend) {
+      const bins = 10, lo = SC.cMin, hi = SC.cMax, st = (hi - lo) / bins || 1, isYr = /year|prio/.test(SC.c);
+      const f = v => isYr ? String(Math.round(v)) : fmt(Math.round(v));
+      const lab = i => i === 0 ? `≤ ${f(lo + st)}` : i === bins - 1 ? `≥ ${f(lo + st * i)}` : `${f(lo + st * i)} – ${f(lo + st * (i + 1))}`;
+      ctx.font = "11.5px Inter, system-ui, sans-serif"; const tw = Math.max(...Array.from({length: bins}, (_, i) => ctx.measureText(lab(i)).width)) + 34, th = bins * 15 + 12;
+      if (W > 420) {
+        const lx = W - M.r - tw - 6, ly = H - M.b - th - 6;
+        ctx.fillStyle = surf; ctx.globalAlpha = .92; ctx.fillRect(lx, ly, tw, th); ctx.globalAlpha = 1; ctx.strokeStyle = line; ctx.strokeRect(lx, ly, tw, th);
+        for (let i = 0; i < bins; i++) { const c = rampColor((i + .5) / bins); ctx.fillStyle = `rgb(${c})`; ctx.fillRect(lx + 8, ly + 6 + i * 15, 14, 14); ctx.fillStyle = ink; ctx.textAlign = "left"; ctx.fillText(lab(i), lx + 28, ly + 17 + i * 15); }
+      }
+    }
+  }
+  function schedule() { cancelAnimationFrame(raf); raf = requestAnimationFrame(draw); }
+  function refreshInfo() {
+    $("#sCount").textContent = `↦ ${fmt(pts.length)} puntos · seleccionados ${fmt(SC.sel.size)}`;
+    $("#sR").textContent = pts.length > 2 ? `r = ${SC.st.r.toFixed(2)}` : "";
+    $("#sMsg").textContent = SC.msg || "";
+    const selDocs = SC.sel.size ? pts.filter(p => SC.sel.has(p.d.lens)).map(p => p.d) : pts.filter(p => p.x >= dom.x[0] && p.x <= dom.x[1] && p.y >= dom.y[0] && p.y <= dom.y[1]).map(p => p.d);
+    const top = selDocs.slice().sort((a, b) => b.citedBy - a.citedBy).slice(0, 40);
+    $("#tTitle").textContent = SC.sel.size ? `Patentes seleccionadas (${fmt(SC.sel.size)})` : "Patentes más citadas en la vista";
+    $("#tSub").textContent = SC.sel.size ? "Ordenadas por número de citas. Haz clic en un área vacía de la gráfica para quitar la selección." : `Las 40 más citadas de ${fmt(selDocs.length)} patentes visibles. Arrastra en la gráfica para elegir un grupo.`;
+    $("#tBody").innerHTML = top.map(docRow).join("") || `<tr><td colspan="7" class="note">Sin patentes en esta vista.</td></tr>`;
+  }
+  function full() { build(); schedule(); refreshInfo(); }
+  const pos = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+  function nearest(x, y) { let best = -1, bd = 100; pts.forEach((p, i) => { const [a, b] = px(p), dd = (a - x) ** 2 + (b - y) ** 2; if (dd < bd) { bd = dd; best = i; } }); return best; }
+  cv.addEventListener("pointerdown", e => { const [x, y] = pos(e); drag = {x0: x, y0: y, x1: x, y1: y, moved: false}; cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener("pointermove", e => {
+    const [x, y] = pos(e);
+    if (drag) { drag.x1 = x; drag.y1 = y; if (Math.abs(x - drag.x0) + Math.abs(y - drag.y0) > 4) drag.moved = true; tip.hidden = true; schedule(); return; }
+    const h = nearest(x, y); if (h !== hover) { hover = h; schedule(); }
+    if (h >= 0) { const d = pts[h].d; tip.dataset.lock = 1; showTip(`<strong>${esc(d.title)}</strong><br>${esc(firstApp(d))}<br>${d.year} · ${esc(d.jur)} · ${esc(TYPE_ES[d.type] || d.type)}<br>${SVARS.find(s => s.k === SC.x).l}: ${fmt(d[SC.x])} · ${SVARS.find(s => s.k === SC.y).l}: ${fmt(d[SC.y])}<br><em>Clic para seleccionar</em>`, e.clientX, e.clientY, true); }
+    else { delete tip.dataset.lock; tip.hidden = true; }
+  });
+  cv.addEventListener("pointerleave", () => { hover = -1; delete tip.dataset.lock; tip.hidden = true; schedule(); });
+  cv.addEventListener("pointerup", e => {
+    if (!drag) return; const d = drag; drag = null;
+    if (!d.moved) {
+      const h = nearest(d.x0, d.y0);
+      if (h >= 0) { SC.sel = new Set([pts[h].d.lens]); SC.msg = "Patente seleccionada: ábrela en The Lens desde la tabla."; refreshInfo(); }
+      else if (SC.sel.size) { SC.sel.clear(); SC.msg = ""; refreshInfo(); }
+      schedule(); return;
+    }
+    const x0 = Math.min(d.x0, d.x1), x1 = Math.max(d.x0, d.x1), y0 = Math.min(d.y0, d.y1), y1 = Math.max(d.y0, d.y1);
+    if (SC.tool === "zoom") { SC.view = {x: [iX(x0), iX(x1)], y: [iY(y1), iY(y0)]}; dom = SC.view; SC.msg = "Acercamiento aplicado. Usa ⤢ para volver a ver todo."; }
+    else { SC.sel = new Set(pts.filter(p => { const [a, b] = px(p); return a >= x0 && a <= x1 && b >= y0 && b <= y1; }).map(p => p.d.lens)); SC.msg = ""; }
+    schedule(); refreshInfo();
+  });
+  const bind = (id, ev, fn) => $(id).addEventListener(ev, fn);
+  bind("#sx", "change", e => { SC.x = e.target.value; SC.view = null; SC.msg = ""; full(); });
+  bind("#sy", "change", e => { SC.y = e.target.value; SC.view = null; SC.msg = ""; full(); });
+  bind("#sc", "change", e => { SC.c = e.target.value; full(); });
+  bind("#ss", "change", e => { SC.s = e.target.value; full(); });
+  bind("#sSize", "input", e => { SC.size = +e.target.value; schedule(); });
+  bind("#sOp", "input", e => { SC.op = +e.target.value; schedule(); });
+  bind("#sJit", "input", e => { SC.jit = +e.target.value; schedule(); });
+  bind("#cLog", "change", e => { SC.log = e.target.checked; SC.view = null; full(); });
+  bind("#cReg", "change", e => { SC.regions = e.target.checked; schedule(); });
+  bind("#cLeg", "change", e => { SC.legend = e.target.checked; schedule(); });
+  bind("#cGrid", "change", e => { SC.grid = e.target.checked; schedule(); });
+  bind("#cLine", "change", e => { SC.reg = e.target.checked; schedule(); });
+  bind("#cEll", "change", e => { SC.ellipse = e.target.checked; schedule(); });
+  bind("#sReset", "click", () => { SC.view = null; SC.sel.clear(); SC.msg = ""; full(); });
+  document.querySelectorAll(".o-tool[data-tool]").forEach(b => b.addEventListener("click", () => { SC.tool = b.dataset.tool; document.querySelectorAll(".o-tool[data-tool]").forEach(o => o.setAttribute("aria-pressed", o === b)); }));
+  bind("#sFind", "click", () => {
+    let best = null;
+    for (const a of SVARS) for (const b of SVARS) { if (a.k >= b.k) continue;
+      const f1 = SC.log && a.count ? v => Math.log10(1 + v) : v => v, f2 = SC.log && b.count ? v => Math.log10(1 + v) : v => v;
+      const P = docs.filter(d => !(/year|prio/.test(a.k) && !d[a.k]) && !(/year|prio/.test(b.k) && !d[b.k])); if (P.length < 10) continue;
+      let mx = 0, my = 0; P.forEach(d => { mx += f1(d[a.k]); my += f2(d[b.k]); }); mx /= P.length; my /= P.length;
+      let sxx = 0, syy = 0, sxy = 0; P.forEach(d => { const u = f1(d[a.k]) - mx, v = f2(d[b.k]) - my; sxx += u * u; syy += v * v; sxy += u * v; });
+      const r = sxx && syy ? sxy / Math.sqrt(sxx * syy) : 0;
+      const trivial = (a.k + "|" + b.k) === "extFam|fam" || (a.k + "|" + b.k) === "prio|year";
+      if (!trivial && (!best || Math.abs(r) > Math.abs(best.r))) best = {a: a.k, b: b.k, r};
+    }
+    if (!best) return;
+    SC.x = best.a; SC.y = best.b; SC.view = null; $("#sx").value = SC.x; $("#sy").value = SC.y;
+    SC.msg = `Proyección más informativa: ${SVARS.find(s => s.k === best.a).l} × ${SVARS.find(s => s.k === best.b).l} (r = ${best.r.toFixed(2)})`; full();
+  });
+  const ro = new ResizeObserver(() => { size(); schedule(); }); ro.observe(cv);
+  const mq = matchMedia("(prefers-color-scheme: dark)"), onTheme = () => schedule(); mq.addEventListener("change", onTheme);
+  const mo = new MutationObserver(onTheme); mo.observe(document.documentElement, {attributes: true, attributeFilter: ["data-theme"]});
+  scatterCleanup = () => { ro.disconnect(); mq.removeEventListener("change", onTheme); mo.disconnect(); cancelAnimationFrame(raf); delete tip.dataset.lock; };
+  size(); if (docs.length) full(); else draw();
+}
+
+/* ================= Explorador de ciencia ================= */
+function renderScience(main) {
+  const docs = docsFor("ciencia", S.ing), by = byYear(docs);
+  const apps = count(docs, firstApp).slice(0, 10), cpc = count(docs, d => d.cpc, " ").slice(0, 10);
+  const peak = Object.entries(by).filter(([y]) => +y < NOW_YEAR).sort((a, b) => b[1] - a[1])[0];
+  const yrs = []; for (let y = 2006; y <= 2025; y++) yrs.push(y);
+  const ingRows = S.ings.map((n, i) => ({n, i, by: byYear(docsFor("ciencia", i))})).filter(r => Object.keys(r.by).length);
+  const hmax = Math.max(1, ...ingRows.flatMap(r => yrs.map(y => r.by[y] || 0)));
+  const cell = v => { if (!v) return `background:var(--neutral-bg)`; const c = rampColor(1 - Math.sqrt(v / hmax)); return `background:rgb(${c})`; };
+  const series = S.ing === "all" ? [{name: "CIENCIA", color: css("--accent"), data: by, area: true}] : [{name: ingName(S.ing) + " · CIENCIA", color: css("--accent"), data: by, area: true}, {name: ingName(S.ing) + " · PATENTES", color: css("--caramel"), data: byYear(docsFor("patente", S.ing))}];
+  main.innerHTML = `<section class="view">
+    <div class="view-head"><span class="eyebrow">Ciencia</span><h1>Explorador de ciencia</h1>
+    <p>Datos científicos de los archivos CIENCIA para <strong>${esc(ingName(S.ing))}</strong>: cómo crece el conocimiento técnico, quién lo produce y en qué áreas tecnológicas se concentra.</p></div>
+    <div class="kpis">
+      <div class="kpi"><span class="k-label">Documentos científicos</span><span class="k-val">${fmt(docs.length)}</span><span class="k-sub">${esc(ingName(S.ing))}</span></div>
+      <div class="kpi"><span class="k-label">Año pico</span><span class="k-val">${peak ? peak[0] : "–"}</span><span class="k-sub">${peak ? fmt(peak[1]) + " documentos" : ""}</span></div>
+      <div class="kpi"><span class="k-label">Con texto completo</span><span class="k-val">${pct(S.files.filter(f => f.ds === "ciencia" && (S.ing === "all" || f.ing === +S.ing)).reduce((a, f) => a + f.full, 0), S.files.filter(f => f.ds === "ciencia" && (S.ing === "all" || f.ing === +S.ing)).reduce((a, f) => a + f.rows, 0))}</span><span class="k-sub">de los registros</span></div>
+      <div class="kpi"><span class="k-label">Citan literatura científica</span><span class="k-val">${pct(docs.filter(d => d.npl > 0).length, docs.length)}</span><span class="k-sub">${fmt(docs.reduce((a, d) => a + d.npl, 0))} citas NPL en total</span></div>
+    </div>
+    <div class="panel"><h2>Producción por año</h2><p class="sub">${S.ing === "all" ? "Documentos únicos de los archivos CIENCIA" : "CIENCIA frente a PATENTES del mismo ingrediente"}</p>${lineChart(series, {y0: 1995, label: "Documentos científicos por año"})}</div>
+    <div class="panel"><h2>Mapa de calor: ingrediente × año</h2><p class="sub">Documentos CIENCIA por año, 2006–2025. Más oscuro = más actividad.</p>
+      <div class="table-wrap"><div class="heat" style="--cols:${yrs.length}">
+        ${ingRows.map(r => `<div class="h-row"><span class="h-lbl" style="${S.ing !== "all" && +S.ing === r.i ? "font-weight:700;color:var(--accent)" : ""}">${esc(r.n)}</span>${yrs.map(y => `<span class="h-cell" style="${cell(r.by[y] || 0)}" data-tip="${esc(r.n)} · ${y}: ${fmt(r.by[y] || 0)} docs"></span>`).join("")}</div>`).join("")}
+        <div class="h-row"><span></span>${yrs.map(y => `<span class="h-yr">${y % 5 === 0 ? y : ""}</span>`).join("")}</div>
+      </div></div></div>
+    <div class="grid2">
+      <div class="panel"><h2>Instituciones y empresas que más publican</h2><p class="sub">Primer solicitante de cada documento</p>${apps.length ? bars(apps) : `<p class="note">Sin datos.</p>`}</div>
+      <div class="panel"><h2>Áreas tecnológicas</h2><p class="sub">Subclases CPC más frecuentes</p>${cpc.length ? bars(cpc.map(([k, v]) => [`${k} · ${CPC[k] || "Otra área"}`, v]), {color: "var(--caramel)"}) : `<p class="note">Sin datos.</p>`}</div>
+    </div>
+    <div class="panel"><h2>Buscar en los documentos científicos</h2><p class="sub">Busca en títulos y resúmenes (la mayoría está en inglés: prueba “antioxidant”, “stability”, “serum”).</p>
+      <div class="search-row"><input class="input" id="sciQ" type="search" placeholder="Ej.: antioxidant, wound healing, emulsion" value=""><span class="note" id="sciN"></span></div>
+      <div class="table-wrap" style="margin-top:12px"><table>${docTableHead}<tbody id="sciBody"></tbody></table></div></div>
+  </section>`;
+  const run = () => {
+    const q = norm($("#sciQ").value).trim();
+    const res = (q ? docs.filter(d => norm(d.title + " " + d.abs).includes(q)) : docs).slice().sort((a, b) => b.citedBy - a.citedBy);
+    $("#sciN").textContent = q ? `${fmt(res.length)} resultados` : `Mostrando los más citados de ${fmt(docs.length)}`;
+    $("#sciBody").innerHTML = res.slice(0, 25).map(docRow).join("") || `<tr><td colspan="7" class="note">Sin resultados para “${esc(q)}”.</td></tr>`;
+  };
+  $("#sciQ").addEventListener("input", run); run();
+}
+
+/* ================= Calidad de investigación ================= */
+function renderQuality(main) {
+  const files = S.files.slice().sort((a, b) => S.ings[a.ing].localeCompare(S.ings[b.ing]) || a.ds.localeCompare(b.ds));
+  const capped = files.filter(f => f.rows >= 1000), small = files.filter(f => f.rows < 100);
+  const totalRows = files.reduce((a, f) => a + f.rows, 0);
+  const noAbs = files.reduce((a, f) => a + f.noAbs, 0);
+  const overlap = S.ings.map((n, i) => {
+    const c = new Set(docsFor("ciencia", i).map(d => d.lens)), p = new Set(docsFor("patente", i).map(d => d.lens));
+    let both = 0; c.forEach(x => p.has(x) && both++);
+    return {n, c: c.size, p: p.size, both, union: new Set([...c, ...p]).size};
+  });
+  const flags = f => {
+    const out = [];
+    if (f.rows >= 1000) out.push(`<span class="pill p-warn">Tope de 1,000</span>`);
+    if (f.rows < 100) out.push(`<span class="pill p-bad">Muestra pequeña</span>`);
+    if (f.noAbs / Math.max(1, f.rows) > .1) out.push(`<span class="pill p-warn">Faltan resúmenes</span>`);
+    if (f.uploaded) out.push(`<span class="pill p-accent">Cargado por ti</span>`);
+    return out.join(" ") || `<span class="pill p-good">Completo</span>`;
+  };
+  main.innerHTML = `<section class="view">
+    <div class="view-head"><span class="eyebrow">Calidad</span><h1>Calidad de investigación</h1>
+    <p>Revisión de cada archivo antes de sacar conclusiones: tamaño de muestra, búsquedas truncadas, resúmenes faltantes y cuánto se repiten los documentos entre CIENCIA y PATENTES.</p></div>
+    <div class="kpis">
+      <div class="kpi"><span class="k-label">Registros leídos</span><span class="k-val">${fmt(totalRows)}</span><span class="k-sub">${fmt(S.docs.length)} documentos únicos</span></div>
+      <div class="kpi"><span class="k-label">Búsquedas truncadas</span><span class="k-val">${capped.length}</span><span class="k-sub">de ${files.length} archivos llegaron a 1,000 registros</span></div>
+      <div class="kpi"><span class="k-label">Muestras pequeñas</span><span class="k-val">${small.length}</span><span class="k-sub">archivos con menos de 100 registros</span></div>
+      <div class="kpi"><span class="k-label">Sin resumen</span><span class="k-val">${pct(noAbs, totalRows)}</span><span class="k-sub">${fmt(noAbs)} registros</span></div>
+    </div>
+    <div class="panel"><h2>Diagnóstico por archivo</h2><p class="sub">The Lens exporta como máximo 1,000 registros por búsqueda. Si un archivo llegó al tope, conviene dividir la búsqueda por años para no perder documentos.</p>
+      <div class="table-wrap"><table><thead><tr><th>Archivo</th><th>Conjunto</th><th>Ingrediente</th><th class="num">Registros</th><th class="num">Años</th><th class="num">Texto completo</th><th class="num">Sin resumen</th><th>Diagnóstico</th></tr></thead><tbody>
+      ${files.map(f => `<tr><td style="font-family:ui-monospace,monospace;font-size:12px">${esc(f.file)}</td><td><span class="pill ${f.ds === "ciencia" ? "p-accent" : "p-neutral"}">${f.ds === "ciencia" ? "Ciencia" : "Patentes"}</span></td><td>${esc(S.ings[f.ing])}</td><td class="num">${fmt(f.rows)}</td><td class="num">${f.y0 ? f.y0 + "–" + f.y1 : "–"}</td><td class="num">${pct(f.full, f.rows)}</td><td class="num">${pct(f.noAbs, f.rows)}</td><td>${flags(f)}</td></tr>`).join("")}
+      </tbody></table></div></div>
+    <div class="panel"><h2>Coincidencia entre CIENCIA y PATENTES</h2><p class="sub">Documentos con el mismo ID de The Lens en ambos archivos del ingrediente. Una coincidencia alta indica que las dos búsquedas trajeron casi lo mismo.</p>
+      <div class="table-wrap"><table><thead><tr><th>Ingrediente</th><th class="num">Ciencia</th><th class="num">Patentes</th><th class="num">En ambos</th><th class="num">Coincidencia</th><th>Lectura</th></tr></thead><tbody>
+      ${overlap.map(o => { const r = o.union ? o.both / o.union : 0; const read = !o.c || !o.p ? `<span class="pill p-bad">Falta un conjunto</span>` : r > .6 ? `<span class="pill p-warn">Búsquedas casi iguales</span>` : r > .25 ? `<span class="pill p-neutral">Coincidencia media</span>` : `<span class="pill p-good">Se complementan</span>`; return `<tr><td>${esc(o.n)}</td><td class="num">${fmt(o.c)}</td><td class="num">${fmt(o.p)}</td><td class="num">${fmt(o.both)}</td><td class="num">${o.union ? Math.round(r * 100) + "%" : "–"}</td><td>${read}</td></tr>`; }).join("")}
+      </tbody></table></div>
+      <p class="note" style="margin-top:10px">Nota: los archivos CIENCIA de esta carpeta también son exportaciones de patentes de The Lens (con encabezados en español). Si quieres artículos científicos, exporta desde la pestaña “Scholarly Works” de The Lens y cárgalos en El Cerebro.</p></div>
+  </section>`;
+}
+
+/* ================= El Cerebro ================= */
+const ALIASES = [["kalahari", "Aceite de Kalahari"], ["bakuchiol", "Bakuchiol"], ["cacao", "Cacao"], ["cocoa", "Cacao"], ["carbon activado", "Carbón activado"], ["charcoal", "Carbón activado"], ["carbon", "Carbón activado"], ["carmin", "Carmín"], ["cochinilla", "Carmín"], ["cempasuchil", "Cempasúchil"], ["marigold", "Cempasúchil"], ["jojoba", "Jojoba y aloe"], ["aloe", "Jojoba y aloe"], ["leche de cabra", "Leche de cabra"], ["cabra", "Leche de cabra"], ["marula", "Marula"], ["melipona", "Miel melipona"], ["miel", "Miel melipona"], ["mongongo", "Mongongo"], ["tepezcohuite", "Tepezcohuite"], ["tuna", "Tuna"], ["nopal", "Tuna"], ["opuntia", "Tuna"], ["zapote", "Zapote negro"]];
+const TERMS = {antioxidante: ["antioxid"], antioxidantes: ["antioxid"], estable: ["stabil", "stable"], estabilidad: ["stabil", "stable"], temperatura: ["temperat", "heat", "thermal"], calor: ["heat", "thermal", "temperat"], suero: ["serum"], sueros: ["serum"], serum: ["serum"], crema: ["cream"], cremas: ["cream"], locion: ["lotion"], piel: ["skin"], cutanea: ["skin", "derma"], cabello: ["hair"], pelo: ["hair"], arrugas: ["wrinkl"], envejecimiento: ["aging", "ageing", "wrinkl"], antienvejecimiento: ["anti-aging", "antiaging", "aging", "ageing"], antiedad: ["anti-aging", "aging", "ageing"], acne: ["acne"], hidratante: ["moistur", "hydrat"], hidratacion: ["moistur", "hydrat"], solar: ["sunscreen", "uv", "sun"], uv: ["uv", "ultraviolet"], inflamacion: ["inflamm"], antiinflamatorio: ["inflamm"], irritacion: ["irritat"], retinol: ["retinol", "retino"], pigmento: ["pigment", "colorant"], colorante: ["colorant", "dye", "pigment"], labial: ["lip"], labios: ["lip"], emulsion: ["emulsi"], aceite: ["oil"], extracto: ["extract"], cicatrizacion: ["wound", "heal"], heridas: ["wound"], manchas: ["whiten", "lighten", "melan", "pigmentation"], aclarante: ["whiten", "lighten", "brighten"], antibacteriano: ["antibacter", "antimicrob"], antimicrobiano: ["antimicrob", "antibacter"], nanoparticulas: ["nanopart", "nano"], encapsulacion: ["encapsul"], conservante: ["preserv"], jabon: ["soap"], mascarilla: ["mask"], exfoliante: ["exfoli", "scrub"], colageno: ["collagen"], polifenoles: ["polyphenol"], flavonoides: ["flavon"], vitamina: ["vitamin"], desodorante: ["deodor"], champu: ["shampoo"], maquillaje: ["makeup", "make-up"], organico: ["organic"], sostenible: ["sustainab"], fermentacion: ["ferment"], fermentado: ["ferment"], microbioma: ["microbio"], formulacion: ["formulat"], formulaciones: ["formulat"], emoliente: ["emollient"], barra: ["stick", "bar"], textura: ["textur"], aroma: ["fragran", "aroma"], fragancia: ["fragran"], estabilizante: ["stabiliz"], oxidacion: ["oxidat"], vida: ["shelf"], caducidad: ["shelf life", "shelf-life"]};
+const STOP = new Set("el la los las un una unos unas de del al a en y o u que cual cuales cuál como es son esta este estos estas para por con sin sobre entre mas más menos muy su sus se lo le les me mi mis tu tus hay hace tiene tienen ser fue han ha principal principales diferencia diferencias terminos termino datos dato archivo archivos segun según dime dame quiero saber puedes podrias muestra muestrame cuantas cuantos cuanto cuanta total patente patentes ciencia cientifica cientifico cientificos cientificas estudio estudios investigacion documentos documento ingrediente ingredientes tendencia tendencias evolucion empresa empresas solicitante solicitantes quien quienes lider lideres pais paises donde vigente vigentes activa activas estado legal mas citada citadas importantes relevantes oportunidad oportunidades compara comparar comparacion vs versus frente entre ano anos año años crecimiento crece mexico usar uso usos sirve existe existen alguna algun alguno algunas algunos tipo tipos mejor mejores general resumen panorama the of and for".split(" "));
+let searchIndex = null;
+function ensureIndex() { if (!searchIndex || searchIndex.length !== S.docs.length) searchIndex = S.docs.map(d => norm(d.title + " " + d.abs)); }
+function parseQ(q) {
+  const n = norm(q).replace(/[¿?¡!.,;:()]/g, " ");
+  const ings = []; let rest = " " + n + " ";
+  S.ings.forEach((name, i) => { const k = norm(name); if (rest.includes(" " + k + " ")) { if (!ings.includes(i)) ings.push(i); rest = rest.split(k).join(" "); } });
+  for (const [a, name] of ALIASES) { const re = new RegExp("\\b" + a + "\\b", "g"); if (re.test(rest)) { const idx = S.ings.indexOf(name); if (idx >= 0 && !ings.includes(idx)) ings.push(idx); rest = rest.replace(re, " "); } }
+  const ds = /cientif|ciencia|estudio|investigac|articul|paper/.test(n) ? "ciencia" : /patent/.test(n) ? "patente" : "all";
+  const intents = new Set();
+  if (ings.length >= 2 || /compar|diferencia|\bvs\b|versus|frente a/.test(n)) intents.add("compare");
+  if (/tendencia|evolucion|por ano|crecimiento|crece|historic|cuando|ultimos anos/.test(n)) intents.add("trend");
+  if (/empresa|solicitante|compania|quien|lider|marca|actor|competid|institucion|universidad/.test(n)) intents.add("apps");
+  if (/pais|jurisdic|donde|region|oficina|\bmexico\b|mercado/.test(n)) intents.add("geo");
+  if (/vigent|activa|estado legal|expir|libre|dominio publico|caduc|abandon/.test(n)) intents.add("legal");
+  if (/citad|influyente|relevante|importante|\btop\b|mejores/.test(n)) intents.add("cited");
+  if (/oportunidad|espacio blanco|conviene|recomiend|invertir|apostar|prioriz/.test(n)) intents.add("opp");
+  if (/cuant|total|numero|resumen|panorama/.test(n)) intents.add("count");
+  const concepts = []; const nums = [];
+  rest.split(/\s+/).filter(Boolean).forEach(w => {
+    if (/^\d{2,3}$/.test(w) || /^\d{2,3}°?c$/.test(w)) { nums.push(w.replace(/[°c]/g, "")); return; }
+    if (STOP.has(w) || w.length < 3) return;
+    if (TERMS[w]) concepts.push({w, v: TERMS[w]});
+    else if (w.length >= 5) { const v = w.length > 7 ? w.slice(0, w.length - 2) : w; ensureIndex(); if (searchIndex.some(t => t.includes(v))) concepts.push({w, v: [v]}); }
+  });
+  nums.forEach(x => concepts.push({w: x + " °C", v: [x + " °c", x + "°c", x + " c", x + " deg", x + "° c", x + "c "]}));
+  const uniq = []; concepts.forEach(c => { if (!uniq.some(u => u.w === c.w || u.v.join() === c.v.join())) uniq.push(c); });
+  return {n, ings, ds, intents, concepts: uniq};
+}
+function scope(p) {
+  const list = p.ings.length ? p.ings : ["all"];
+  const set = new Map(); list.forEach(i => docsFor(p.ds, i).forEach(d => set.set(d.lens, d)));
+  return [...set.values()];
+}
+function filesUsed(p) { return S.files.filter(f => (p.ds === "all" || f.ds === p.ds) && (!p.ings.length || p.ings.includes(f.ing))).map(f => f.file); }
+function srcLine(p) { const f = filesUsed(p); return `<div class="src">Basado en ${f.length > 4 ? `${f.length} archivos (${f.slice(0, 3).map(esc).join(", ")}…)` : f.map(x => `'${esc(x)}'`).join(", ") || "los datos cargados"}. Respuesta calculada con títulos, resúmenes y metadatos de The Lens.</div>`; }
+function matchDocs(docs, concepts) {
+  ensureIndex();
+  return docs.map(d => { const t = searchIndex[S.byLens.get(d.lens)]; let s = 0; const hit = []; concepts.forEach(c => { if (c.v.some(v => t.includes(v))) { s++; hit.push(c); } }); return {d, s, hit}; }).filter(r => r.s > 0).sort((a, b) => b.s - a.s || b.d.citedBy - a.d.citedBy);
+}
+function snippet(d, concepts) {
+  const txt = d.abs || d.title || ""; const low = norm(txt); let at = -1, len = 0;
+  for (const c of concepts) for (const v of c.v) { const i = low.indexOf(v); if (i >= 0 && (at < 0 || i < at)) { at = i; len = v.length; } }
+  let s = at < 0 ? txt.slice(0, 180) : (at > 70 ? "…" : "") + txt.slice(Math.max(0, at - 70), at + 120);
+  let h = esc(s); concepts.forEach(c => c.v.forEach(v => { if (v.length < 3) return; const re = new RegExp("(" + v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/ /g, "\\s") + "[a-z]*)", "ig"); h = h.replace(re, "<mark>$1</mark>"); }));
+  return h + (txt.length > 180 ? "…" : "");
+}
+function evid(rows, concepts) {
+  return `<div class="evid">${rows.map(r => { const d = r.d || r; return `<div class="evid-item"><a href="https://lens.org/${esc(d.lens)}" target="_blank" rel="noopener">${esc(d.title)}</a><div class="meta">${d.year} · ${esc(JUR[d.jur] || d.jur)} · ${esc(firstApp(d))} · citada ${fmt(d.citedBy)} veces · ${legalPill(d.legal)}</div>${concepts && concepts.length ? `<div style="margin-top:4px">${snippet(d, concepts)}</div>` : ""}</div>`; }).join("")}</div>`;
+}
+function answer(q) {
+  const p = parseQ(q), docs = scope(p), parts = [];
+  const who = p.ings.length ? p.ings.map(i => S.ings[i]).join(", ") : "todos los ingredientes";
+  const dsTxt = p.ds === "ciencia" ? "los archivos CIENCIA" : p.ds === "patente" ? "los archivos PATENTES" : "CIENCIA y PATENTES";
+  if (!docs.length) return `<h3>No encontré documentos para esa combinación</h3><p>No hay registros de ${esc(who)} en ${dsTxt}. Revisa el nombre del ingrediente o carga el CSV correspondiente en el panel de la derecha.</p>`;
+  const conceptsTxt = p.concepts.map(c => `“${esc(c.w)}”`).join(", ");
+  // Comparación
+  if (p.intents.has("compare") && p.ings.length >= 2) {
+    const rows = p.ings.map(i => {
+      const ds = scope({...p, ings: [i]}), by = byYear(ds); let rec = 0, pri = 0; for (let y = 2021; y <= 2025; y++) rec += by[y] || 0; for (let y = 2016; y <= 2020; y++) pri += by[y] || 0;
+      const m = p.concepts.length ? matchDocs(ds, p.concepts) : [];
+      const ap = count(ds, firstApp)[0], cp = count(ds, d => d.cpc, " ").filter(([k]) => k !== "A61K" && k !== "A61Q")[0];
+      return {i, n: ds.length, by, rec, pri, m, ap, cp, granted: ds.filter(isGranted).length};
+    });
+    const lead = p.concepts.length ? rows.slice().sort((a, b) => b.m.length / Math.max(1, b.n) - a.m.length / Math.max(1, a.n))[0] : rows.slice().sort((a, b) => b.n - a.n)[0];
+    parts.push(`<h3>${p.ings.map(i => esc(S.ings[i])).join(" frente a ")}${p.concepts.length ? " en " + conceptsTxt : ""}</h3>
+      <p>${p.concepts.length ? `<strong>${esc(S.ings[lead.i])}</strong> tiene la mayor proporción de documentos que mencionan ${conceptsTxt}: ${fmt(lead.m.length)} de ${fmt(lead.n)} (${pct(lead.m.length, lead.n)}).` : `<strong>${esc(S.ings[lead.i])}</strong> concentra más actividad, con ${fmt(lead.n)} documentos.`} ${rows.map(r => `${esc(S.ings[r.i])} pasó de ${fmt(r.pri)} documentos en 2016–20 a ${fmt(r.rec)} en 2021–25`).join("; ")}.</p>
+      <div class="table-wrap"><table><thead><tr><th>Ingrediente</th><th class="num">Docs.</th>${p.concepts.length ? `<th class="num">Mencionan el tema</th>` : ""}<th class="num">Concedidas</th><th>Solicitante líder</th><th>Área distintiva</th></tr></thead><tbody>
+      ${rows.map(r => `<tr><td><strong>${esc(S.ings[r.i])}</strong></td><td class="num">${fmt(r.n)}</td>${p.concepts.length ? `<td class="num">${fmt(r.m.length)} (${pct(r.m.length, r.n)})</td>` : ""}<td class="num">${pct(r.granted, r.n)}</td><td>${esc(r.ap ? r.ap[0] : "–")}</td><td>${r.cp ? esc(r.cp[0] + " · " + (CPC[r.cp[0]] || "")) : "–"}</td></tr>`).join("")}</tbody></table></div>
+      ${lineChart(rows.map((r, k) => ({name: S.ings[r.i], color: [css("--accent"), css("--amber"), css("--caramel"), css("--deep")][k % 4], data: r.by})), {y0: 2005, h: 200})}`);
+    if (p.concepts.length) { const ex = rows.flatMap(r => r.m.slice(0, 2)); if (ex.length) parts.push(`<p><strong>Evidencia en los documentos:</strong></p>${evid(ex, p.concepts)}`); }
+    return parts.join("") + srcLine(p);
+  }
+  // Búsqueda temática
+  if (p.concepts.length) {
+    const m = matchDocs(docs, p.concepts), all = m.filter(r => r.s === p.concepts.length);
+    if (!m.length) parts.push(`<h3>Ningún documento menciona ${conceptsTxt}</h3><p>Revisé ${fmt(docs.length)} documentos de ${esc(who)} en ${dsTxt} y ninguno menciona esos términos en el título o el resumen. Eso no prueba que no exista evidencia: puede estar en el texto completo o en literatura que no está en estos archivos.</p>`);
+    else {
+      const byM = byYear(m.map(r => r.d));
+      parts.push(`<h3>${esc(who)}: ${conceptsTxt}</h3>
+      <p>De ${fmt(docs.length)} documentos en ${dsTxt}, <strong>${fmt(all.length)}</strong> mencionan todos los términos${p.concepts.length > 1 ? ` y ${fmt(m.length)} mencionan al menos uno` : ""}. ${all.length ? "Estos son los más relevantes (primero los que cubren más términos y tienen más citas):" : "Ninguno los reúne todos; estos son los que más se acercan:"}</p>
+      ${evid((all.length ? all : m).slice(0, 5), p.concepts)}
+      ${Object.keys(byM).length > 3 ? `<p class="note">Documentos con estos términos por año:</p>${lineChart([{name: "Menciones", color: css("--accent"), data: byM, area: true}], {y0: 2005, h: 170})}` : ""}
+      ${/stabil|temperat|heat|°c/.test(JSON.stringify(p.concepts)) ? `<p class="note">Los documentos de patente describen formulaciones y reivindicaciones; para confirmar estabilidad a una temperatura concreta hace falta una prueba de estabilidad acelerada en laboratorio.</p>` : ""}`);
+    }
+  }
+  const dsN = docs.length, by = byYear(docs);
+  if (p.intents.has("trend")) { let rec = 0, pri = 0; for (let y = 2021; y <= 2025; y++) rec += by[y] || 0; for (let y = 2016; y <= 2020; y++) pri += by[y] || 0; const pk = Object.entries(by).filter(([y]) => +y < NOW_YEAR).sort((a, b) => b[1] - a[1])[0];
+    parts.push(`<h3>Tendencia de ${esc(who)}</h3><p>La actividad ${rec > pri * 1.15 ? "está creciendo" : rec < pri * .85 ? "está bajando" : "se mantiene estable"}: ${fmt(pri)} documentos en 2016–2020 contra ${fmt(rec)} en 2021–2025 (×${((rec + 1) / (pri + 1)).toFixed(1)}). El año con más publicaciones fue ${pk ? pk[0] + " (" + fmt(pk[1]) + ")" : "–"}.</p>${lineChart([{name: who, color: css("--accent"), data: by, area: true}], {y0: 2000, h: 200})}`); }
+  if (p.intents.has("apps")) { const a = count(docs, firstApp).slice(0, 8); parts.push(`<h3>Quién lidera en ${esc(who)}</h3><p><strong>${esc(a[0] ? a[0][0] : "–")}</strong> aparece como primer solicitante en ${a[0] ? fmt(a[0][1]) : 0} documentos.</p>${bars(a)}`); }
+  if (p.intents.has("geo")) { const g = count(docs, d => d.jur).slice(0, 8), mx = docs.filter(d => d.mx).length; parts.push(`<h3>Dónde se protege</h3><p>La oficina principal es ${esc(JUR[g[0][0]] || g[0][0])} con ${pct(g[0][1], dsN)} de los documentos. ${fmt(mx)} documentos (${pct(mx, dsN)}) tienen un miembro de la familia en México.</p>${bars(g.map(([k, v]) => [JUR[k] || k, v]))}`); }
+  if (p.intents.has("legal")) { const l = count(docs, d => d.legal); const alive = docs.filter(isAlive).length; parts.push(`<h3>Estado legal</h3><p>${pct(alive, dsN)} de los documentos siguen vivos (activos, patentados o en trámite). Los inactivos, abandonados o expirados pueden ser tecnología de uso libre, pero confirma con un especialista en propiedad industrial antes de usarla.</p>${bars(l.map(([k, v]) => [(LEGAL_ES[k] || [k])[0], v]))}`); }
+  if (p.intents.has("cited")) { const t = docs.slice().sort((a, b) => b.citedBy - a.citedBy).slice(0, 5); parts.push(`<h3>Documentos más citados</h3>${evid(t)}`); }
+  if (p.intents.has("opp")) { const r = classify(oppRows()).sort((a, b) => b.score - a.score).slice(0, 5); parts.push(`<h3>Ingredientes con más oportunidad</h3><p>Según la matriz de oportunidad (crecimiento, baja saturación y presencia en México):</p><div class="table-wrap"><table><thead><tr><th>Ingrediente</th><th>Clasificación</th><th class="num">Puntaje</th><th class="num">Crecimiento</th></tr></thead><tbody>${r.map(x => `<tr><td>${esc(x.name)}</td><td><span class="pill ${x.cls[1]}">${x.cls[0]}</span></td><td class="num">${x.score}</td><td class="num">×${x.growth.toFixed(1)}</td></tr>`).join("")}</tbody></table></div>`); }
+  if (!parts.length || (p.intents.has("count") && !p.concepts.length)) {
+    const g = docs.filter(isGranted).length, a = count(docs, firstApp)[0], j = count(docs, d => d.jur)[0];
+    parts.unshift(`<h3>Panorama de ${esc(who)}</h3><p>Hay <strong>${fmt(dsN)}</strong> documentos en ${dsTxt}; ${pct(g, dsN)} son patentes concedidas. La oficina principal es ${esc(JUR[j[0]] || j[0])} y el solicitante más activo es ${esc(a ? a[0] : "–")}.</p>${lineChart([{name: who, color: css("--accent"), data: by, area: true}], {y0: 2000, h: 180})}${!p.intents.size && !p.concepts.length ? `<p class="note">Puedes preguntarme por tendencias, empresas líderes, países, estado legal, comparar ingredientes o buscar un tema (por ejemplo “antioxidante” o “estabilidad”).</p>` : ""}`);
+  }
+  return parts.join("") + srcLine(p);
+}
+const SUGGEST = ["¿Cuál es la diferencia entre el Bakuchiol y el Cacao en términos de antioxidantes?", "¿El aceite de Kalahari es estable a 40 °C para formulaciones de sueros?", "¿Qué empresas lideran las patentes de Marula?", "¿Cómo ha evolucionado la ciencia sobre el Tepezcohuite?", "¿Qué ingredientes tienen más oportunidad?", "¿Cuántas patentes de Carmín siguen vigentes?"];
+const chatLog = [];
+function renderBrain(main) {
+  main.innerHTML = `<section class="view">
+    <div class="view-head"><span class="eyebrow">AHAL AI</span><h1>El Cerebro</h1><p>Pregunta en español sobre los archivos CSV cargados. Las respuestas se calculan con los datos de patentes y ciencia y siempre indican de qué archivo salen.</p></div>
+    <div class="brain">
+      <div class="chat">
+        <div class="chat-log" id="log" aria-live="polite"></div>
+        <div class="composer">
+          <div class="chips" id="chips">${SUGGEST.map(s => `<button class="chip" type="button">${esc(s)}</button>`).join("")}</div>
+          <form id="ask"><div class="inbox"><input id="q" type="text" placeholder="Escribe tu pregunta sobre los ingredientes…" autocomplete="off" aria-label="Pregunta para El Cerebro"><button class="icon-btn" type="button" id="attach" title="Cargar archivos CSV" aria-label="Cargar archivos CSV"><svg viewBox="0 0 24 24"><path d="M21 11.5l-8.6 8.6a5 5 0 0 1-7-7L14 4.5a3.3 3.3 0 0 1 4.7 4.7l-8.6 8.6a1.7 1.7 0 0 1-2.4-2.4l8-8"/></svg></button></div><button class="btn btn-primary" type="submit">Preguntar</button></form>
+        </div>
+      </div>
+      <aside class="files">
+        <div class="panel"><h2>Datos entrenados</h2><p class="sub" id="fCount"></p><div class="file-list" id="fList"></div></div>
+        <div class="panel"><h2>Agregar datos</h2><p class="sub">CSV exportados de The Lens (patentes o artículos), en inglés o español.</p>
+          <label class="drop" id="drop" for="fileIn"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg><strong>Arrastra tus CSV aquí</strong><span>o haz clic para elegirlos</span></label>
+          <input type="file" id="fileIn" accept=".csv,text/csv" multiple hidden>
+          <div class="field" style="margin-top:10px"><label for="dsIn">Agregar como:</label><select id="dsIn"><option value="auto">Detectar por nombre</option><option value="patente">Patentes</option><option value="ciencia">Ciencia</option></select></div>
+          <p class="note" id="upMsg" style="margin:8px 0 0"></p>
+          <p class="note" style="margin:8px 0 0">Los archivos se procesan en tu navegador y se usan durante esta sesión.</p>
+        </div>
+      </aside>
+    </div></section>`;
+  renderFiles(); renderLog();
+  $("#ask").addEventListener("submit", e => { e.preventDefault(); const q = $("#q").value.trim(); if (q) ask(q); });
+  $("#chips").addEventListener("click", e => { const b = e.target.closest(".chip"); if (b) ask(b.textContent); });
+  $("#attach").addEventListener("click", () => $("#fileIn").click());
+  $("#fileIn").addEventListener("change", e => handleFiles(e.target.files));
+  const drop = $("#drop");
+  ["dragenter", "dragover"].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add("over"); }));
+  ["dragleave", "drop"].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove("over"); }));
+  drop.addEventListener("drop", e => handleFiles(e.dataTransfer.files));
+}
+function renderFiles() {
+  if (!$("#fList")) return;
+  $("#fCount").textContent = `${S.files.length} archivos · ${fmt(S.docs.length)} documentos únicos`;
+  $("#fList").innerHTML = S.files.map(f => `<div class="file"><span class="ficon ${f.uploaded ? "u" : f.ds === "ciencia" ? "c" : "p"}">CSV</span><div style="min-width:0"><div class="fn" title="${esc(f.file)}">${esc(f.file.replace(/^query-/, "").replace(/\.csv$/i, ""))}.csv</div><div class="fs">${f.ds === "ciencia" ? "Ciencia" : "Patentes"} · ${fmt(f.rows)} registros · Cargado y analizado</div></div><span class="ok" title="Cargado y analizado"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span></div>`).join("");
+}
+function renderLog() {
+  const log = $("#log"); if (!log) return;
+  if (!chatLog.length) { log.innerHTML = `<div class="msg-a"><span class="avatar">${BRAIN_SVG}</span><div class="bubble"><h3>AHAL AI</h3><p>Hola. Tengo cargados ${fmt(S.docs.length)} documentos de ${S.ings.length} ingredientes. Elige una pregunta sugerida o escribe la tuya; puedo comparar ingredientes, buscar temas como “antioxidante” o “estabilidad”, y mostrar tendencias, empresas líderes, países y estado legal.</p></div></div>`; return; }
+  log.innerHTML = chatLog.map(m => m.q ? `<div class="msg-q">${esc(m.q)}</div>` : `<div class="msg-a"><span class="avatar">${BRAIN_SVG}</span><div class="bubble">${m.a === null ? `<span class="typing" aria-label="Analizando"><i></i><i></i><i></i></span>` : m.a}</div></div>`).join("");
+  log.scrollTop = log.scrollHeight;
+}
+const BRAIN_SVG = `<svg viewBox="0 0 24 24"><path d="M9 4a3 3 0 0 0-3 3 3 3 0 0 0-2 5 3 3 0 0 0 2 5 3 3 0 0 0 3 3 3 3 0 0 0 3-1V5a3 3 0 0 0-3-1zM15 4a3 3 0 0 1 3 3 3 3 0 0 1 2 5 3 3 0 0 1-2 5 3 3 0 0 1-3 3 3 3 0 0 1-3-1"/></svg>`;
+function ask(q) {
+  $("#q").value = ""; chatLog.push({q}); const slot = {a: null}; chatLog.push(slot); renderLog();
+  setTimeout(() => { try { slot.a = answer(q); } catch (err) { slot.a = `<p>No pude procesar esa pregunta (${esc(err.message)}). Intenta reformularla con el nombre de un ingrediente.</p>`; console.error(err); } renderLog(); }, 380);
+}
+
+/* ---------- Carga de CSV ---------- */
+function parseCSV(text) {
+  const rows = []; let row = [], f = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += c; }
+    else if (c === '"') q = true; else if (c === ",") { row.push(f); f = ""; }
+    else if (c === "\n") { row.push(f); rows.push(row); row = []; f = ""; }
+    else if (c !== "\r") f += c;
+  }
+  if (f || row.length) { row.push(f); rows.push(row); }
+  return rows;
+}
+const COLS = {lens: ["lens id", "id de the lens"], year: ["publication year", "ano de publicacion", "year published"], jur: ["jurisdiction", "jurisdiccion"], type: ["document type", "tipo de documento", "publication type"], legal: ["legal status", "estado legal"], citedBy: ["cited by patent count", "citado por recuento de patentes", "citing works count", "citing patents count"], fam: ["simple family size", "tamano de familia simple"], title: ["title", "titulo"], app: ["applicants", "solicitantes", "author/s", "authors", "institutions"], cpc: ["cpc classifications", "clasificaciones cpc", "fields of study"], abs: ["abstract", "resumen"], cites: ["cites patent count", "recuento de patentes de citas", "references count"], npl: ["npl citation count", "recuento de citas de npl"], famJur: ["simple family member jurisdictions", "jurisdicciones simples para miembros de la familia"], prio: ["earliest priority date", "fecha de prioridad mas temprana"], extFam: ["extended family size", "tamano de familia extendida"], ft: ["has full text", "tiene texto completo"]};
+async function handleFiles(list) {
+  const msg = $("#upMsg"); let added = 0, rowsTot = 0; const errs = [];
+  for (const file of list) {
+    if (!/\.csv$/i.test(file.name)) { errs.push(`${file.name}: no es un archivo .csv`); continue; }
+    try {
+      const rows = parseCSV((await file.text()).replace(/^\uFEFF/, "")).filter(r => r.length > 1);
+      if (rows.length < 2) { errs.push(`${file.name}: está vacío`); continue; }
+      const head = rows[0].map(h => norm(h).trim()), col = {};
+      for (const [k, names] of Object.entries(COLS)) col[k] = head.findIndex(h => names.includes(h));
+      if (col.title < 0) { errs.push(`${file.name}: no encontré una columna de título (Title/Título)`); continue; }
+      const base = file.name.replace(/\.csv$/i, ""), m = base.match(/(ciencia|patente|patent|scholar)[^-]*-(.+)$/i);
+      const sel = $("#dsIn").value;
+      const ds = sel !== "auto" ? sel : /cienc|scholar|articul/i.test(base) ? "ciencia" : "patente";
+      const raw = (m ? m[2] : base).replace(/[_-]+/g, " ").trim();
+      const known = S.ings.findIndex(n => norm(n) === norm(raw) || (ALIASES.find(([a, nm]) => norm(raw).includes(a) && nm === n)));
+      let ing = known; if (ing < 0) { S.ings.push(raw.charAt(0).toUpperCase() + raw.slice(1)); ing = S.ings.length - 1; }
+      const get = (r, k) => col[k] >= 0 ? (r[col[k]] || "").trim() : "";
+      const idx = []; let noAbs = 0, full = 0; const yrs = [];
+      rows.slice(1).forEach((r, n) => {
+        const lens = get(r, "lens") || `${base}-${n}`;
+        const yr = parseInt(get(r, "year")) || 0; if (yr) yrs.push(yr);
+        if (!get(r, "abs")) noAbs++; if (/^(yes|si|sí|true)$/i.test(get(r, "ft"))) full++;
+        let i = S.byLens.get(lens);
+        if (i == null) {
+          const cpc = [...new Set(get(r, "cpc").split(/;;|;/).map(c => c.trim().slice(0, 4)).filter(Boolean))].slice(0, 5).join(" ");
+          const fj = new Set(get(r, "famJur").split(";;").filter(Boolean));
+          const lg = (get(r, "legal") || "UNKNOWN").toUpperCase();
+          const d = {lens, year: yr, jur: get(r, "jur") || "–", type: get(r, "type") || "Unknown", legal: LEGAL_ES[lg] ? lg : "UNKNOWN", citedBy: +get(r, "citedBy") || 0, fam: +get(r, "fam") || 1, title: get(r, "title").slice(0, 200), app: get(r, "app").split(";;").slice(0, 2).join(" ; ").slice(0, 90), cpc, abs: get(r, "abs").slice(0, 400), cites: +get(r, "cites") || 0, npl: +get(r, "npl") || 0, famJur: fj.size || 1, prio: parseInt(get(r, "prio")) || 0, extFam: +get(r, "extFam") || 1, mx: (fj.has("MX") || get(r, "jur") === "MX") ? 1 : 0};
+          i = S.docs.length; S.docs.push(d); S.byLens.set(lens, i);
+        }
+        idx.push(i);
+      });
+      const prev = S.files.findIndex(f => f.file === file.name); const entry = {file: file.name, ds, ing, rows: rows.length - 1, docs: idx, noAbs, full, y0: yrs.length ? Math.min(...yrs) : 0, y1: yrs.length ? Math.max(...yrs) : 0, uploaded: true};
+      if (prev >= 0) S.files[prev] = entry; else S.files.push(entry);
+      added++; rowsTot += rows.length - 1;
+    } catch (err) { errs.push(`${file.name}: ${err.message}`); }
+  }
+  searchIndex = null; fillIngSelect(); updateChrome(); renderFiles();
+  msg.innerHTML = (added ? `<span style="color:var(--good)">Listo: ${added} archivo(s), ${fmt(rowsTot)} registros agregados. Ya puedes preguntar sobre ellos.</span>` : "") + (errs.length ? `<br><span style="color:var(--bad)">${errs.map(esc).join("<br>")}</span>` : "");
+  $("#fileIn").value = "";
+}
+
+/* ================= Arranque ================= */
+const splash = $("#splash"); let splashGone = false, minTime = false, dataOk = false;
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+function leaveSplash() { if (splashGone || !dataOk) return; splashGone = true; splash.classList.add("out"); setTimeout(() => splash.hidden = true, 800); }
+splash.addEventListener("click", () => { if (dataOk) leaveSplash(); else minTime = true; });
+splash.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); splash.click(); } });
+setTimeout(() => { minTime = true; leaveSplash(); }, reduce ? 600 : 2600);
+fetch("data.json").then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); }).then(raw => {
+  loadData(raw); S.ready = true; dataOk = true; fillIngSelect(); updateChrome();
+  $("#splashMeta").textContent = `${fmt(S.docs.length)} documentos · ${S.ings.length} ingredientes · ${S.files.length} archivos listos`;
+  route(); if (minTime) leaveSplash();
+}).catch(err => {
+  $("#splashMeta").textContent = "No se pudieron cargar los datos (data.json). Abre la página desde un servidor web, por ejemplo GitHub Pages.";
+  console.error(err);
+});
+window.addEventListener("resize", () => { if (S.ready) updateChrome(); });
+})();
+</script>
